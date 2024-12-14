@@ -46,7 +46,12 @@ struct Transform {
     Vector3             get_position();
     void                set_position(Vector3 value);
 };
+
 struct Component : BackendObject {
+    Transform*          get_transform();
+};
+
+struct GameObject : BackendObject {
     Transform*          get_transform();
 };
 

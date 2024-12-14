@@ -42,6 +42,10 @@ Transform* Component::get_transform() {
     return reinterpret_cast<Transform*(*)(Component*)>(Component__get_transform->address())(this);
 }
 
+Transform* GameObject::get_transform() {
+    return reinterpret_cast<Transform * (*)(GameObject*)>(GameObject__get_transform->address())(this);
+}
+
 Camera* Camera::main() {
     return reinterpret_cast<Camera*(*)()>(Camera__get_main->address())();
 }

@@ -30,7 +30,6 @@ using t_mono_class_get_type                = MonoType* (*)(MonoClass*);
 using t_mono_object_get_class              = MonoClass* (*)(MonoObject*);
 using t_mono_method_signature              = MonoMethodSignature* (*)(MonoMethod*);
 using t_mono_method_get_name               = const char* (*)(MonoMethod*);
-using t_mono_signature_full_name           = char* (*)(MonoMethodSignature*);
 using t_mono_compile_method                = void* (*)(MonoMethod*);
 using t_mono_jit_info_table_find           = MonoJitInfo* (*)(MonoDomain*, void*);
 using t_mono_jit_info_get_method           = MonoMethod* (*)(MonoJitInfo* ji);
@@ -59,7 +58,6 @@ static t_mono_object_get_class             mono_object_get_class;
 static t_mono_class_get_type               mono_class_get_type;
 static t_mono_method_signature             mono_method_signature;
 static t_mono_method_get_name              mono_method_get_name;
-static t_mono_signature_full_name          mono_signature_full_name;
 static t_mono_compile_method               mono_compile_method;
 static t_mono_jit_info_table_find          mono_jit_info_table_find;
 static t_mono_jit_info_get_method          mono_jit_info_get_method;
@@ -87,7 +85,6 @@ namespace HaxSdk {
 
     void AttachToThread() {
         MonoDomain::root()->attach_thread();
-        MonoDomain::current()->attach_thread();
     }
 }
 
@@ -106,7 +103,6 @@ static void InitializeMono(HMODULE hMono) {
     HAX_MONO_PROC(mono_class_get_type);
     HAX_MONO_PROC(mono_method_signature);
     HAX_MONO_PROC(mono_method_get_name);
-    HAX_MONO_PROC(mono_signature_full_name);
     HAX_MONO_PROC(mono_compile_method);
     HAX_MONO_PROC(mono_jit_info_table_find);
     HAX_MONO_PROC(mono_jit_info_get_method);

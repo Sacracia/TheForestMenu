@@ -6,10 +6,43 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-#define HAXSDK_FUNCTION(a, n, c, m, s)     static BackendMethod* c ## __ ## m
-#define HAXSDK_STATIC_FIELD(a, n, c, f, t) static t* c ## __ ## f
-#define HAXSDK_FIELD_OFFSET(a, n, c, f)    static int c ## __ ## f
+struct mutantController;
+struct Scene;
+struct Cheats;
+struct DebugConsole;
+
+#define HAXSDK_FUNCTION(a, n, c, m, s)     BackendMethod* c ## __ ## m
+#define HAXSDK_STATIC_FIELD(a, n, c, f, t) t* c ## __ ## f
+#define HAXSDK_FIELD_OFFSET(a, n, c, f)    int c ## __ ## f
 #include "cheat_data.h"
+
+struct Scene {
+    static void* ActiveMB() { return *Scene__ActiveMB; }
+    static GameObject* Yacht() { return *Scene__Yacht; }
+    static mutantController* MutantControler() { return *Scene__MutantControler; }
+};
+
+struct Cheats {
+    static bool& Godmode() { return *Cheats__GodMode; }
+    static bool& InfiniteEnergy() { return *Cheats__InfiniteEnergy; }
+    static bool& Creative() { return *Cheats__Creative; }
+    static bool& UnlimitedHairspray() { return *Cheats__UnlimitedHairspray; }
+};
+
+struct DebugConsole {
+    void _addClothingOutfitRandom() { ((void(*)(MonoString*))DebugConsole___addClothingOutfitRandom->address())(nullptr); }
+    void _addAllStoryItems() { ((void(*)(void*))DebugConsole___addAllStoryItems->address())(nullptr); }
+    void _addAllItems() { ((void(*)(void*))DebugConsole___addAllItems->address())(nullptr); }
+};
+
+struct LocalPlayer {
+    static GameObject* GameObject() { return *LocalPlayer__GameObject; }
+    static Transform* Transform() { return *LocalPlayer__Transform; }
+};
+
+struct mutantController {
+    List<GameObject*>* activeCannibals() { return *(List<GameObject*>**)((char*)this + mutantController__activeCannibals); }
+};
 
 void HaxSdk::InitializeGameData() {
 #define HAXSDK_FUNCTION(a, n, c, m, s)     c ## __ ## m = BackendClass::find(a, n, #c)->find_method(#m, s)
@@ -23,7 +56,11 @@ void HaxSdk::RenderBackground() {
 }
 
 void HaxSdk::RenderMenu() {
-    ImGui::ShowDemoWindow();
+    ImGui::Begin("Menu");
+    if (Scene::ActiveMB()) {
+        ImGui::Checkbox("Godmode", Cheats__GodMode);
+    }
+    ImGui::End();
 }
 
 static ImVec4 HexToColor(std::string hex_string) {
@@ -38,7 +75,7 @@ void HaxSdk::ApplyStyle() {
     const HWND hDesktop = GetDesktopWindow();
     GetWindowRect(hDesktop, &desktop);
     float fontSize = std::round(13 * (float)desktop.bottom / 1080);
-    LOG_DEBUG << "Resolution, font: " << desktop.right << 'x' << desktop.bottom << ' ' << fontSize << LOG_FLUSH;
+    //std::cout << "Resolution, font: " << desktop.right << 'x' << desktop.bottom << ' ' << fontSize;
     ImGuiIO& io = ImGui::GetIO();
     ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\trebucbd.ttf", fontSize);
 
