@@ -1,6 +1,6 @@
 #pragma once
 
-namespace HaxSdk {
-    void InitializeGameData();
+namespace ModMenu {
+    void Initialize();
 }
 

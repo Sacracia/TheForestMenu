@@ -13,6 +13,7 @@ HAXSDK_STATIC_FIELD("Assembly-CSharp", "TheForest.Utils", LocalPlayer, Transform
 
 #ifdef HAXSDK_FIELD_OFFSET
 HAXSDK_FIELD_OFFSET("Assembly-CSharp", "", mutantController, activeCannibals);
+
 #undef HAXSDK_FIELD_OFFSET
 #endif
 
@@ -20,5 +21,6 @@ HAXSDK_FIELD_OFFSET("Assembly-CSharp", "", mutantController, activeCannibals);
 HAXSDK_FUNCTION("Assembly-CSharp", "TheForest", DebugConsole, _addClothingOutfitRandom, "System.Void(System.String)");
 HAXSDK_FUNCTION("Assembly-CSharp", "TheForest", DebugConsole, _addAllStoryItems, "System.Void(System.Object)");
 HAXSDK_FUNCTION("Assembly-CSharp", "TheForest", DebugConsole, _addAllItems, "System.Void(System.Object)");
+#undef HAXSDK_FUNCTION_EXT
 #undef HAXSDK_FUNCTION
 #endif

@@ -45,6 +45,8 @@ struct Object {
 struct Transform {
     Vector3             get_position();
     void                set_position(Vector3 value);
+    Transform*          get_parent();
+    void                set_parent(Transform* value);
 };
 
 struct Component : BackendObject {
@@ -52,7 +54,11 @@ struct Component : BackendObject {
 };
 
 struct GameObject : BackendObject {
+    static GameObject*  ctor();
+    static GameObject*  ctor(const char* name);
     Transform*          get_transform();
+    Component*          AddComponent(SystemType* componentType);
+    void                SetActive(bool value);
 };
 
 struct Camera {
@@ -63,4 +69,11 @@ struct Camera {
 struct Screen {
     static int          width();
     static int          height();
+};
+
+struct Light {
+    void                set_intensity(float value);
+    float               get_intensity();
+    void                set_range(float value);
+    float               get_range();
 };

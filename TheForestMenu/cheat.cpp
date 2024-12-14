@@ -11,10 +11,31 @@ struct Scene;
 struct Cheats;
 struct DebugConsole;
 
-#define HAXSDK_FUNCTION(a, n, c, m, s)     BackendMethod* c ## __ ## m
-#define HAXSDK_STATIC_FIELD(a, n, c, f, t) t* c ## __ ## f
-#define HAXSDK_FIELD_OFFSET(a, n, c, f)    int c ## __ ## f
+#define HAXSDK_FUNCTION(a, n, c, m, s)          BackendMethod* c ## __ ## m
+#define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  BackendMethod* c ## __ ## m
+#define HAXSDK_STATIC_FIELD(a, n, c, f, t)      static t* c ## __ ## f
+#define HAXSDK_FIELD_OFFSET(a, n, c, f)         static int c ## __ ## f
 #include "cheat_data.h"
+
+namespace globals {
+    static bool g_infiniteBattery = false;
+    static bool g_maxFullness = false;
+    static bool g_noThirst = false;
+    static bool g_buildHack = false;
+    static bool g_unlimitedItems = false;
+    static bool g_noFallDamage = false;
+    static float g_speedMult = 1.F;
+    static float g_jumpMult = 1.F;
+    static bool g_noCold = false;
+    static bool g_maxSanity = false;
+    static bool g_maxFuel = false;
+    static bool g_esp = false;
+    static bool g_ohk = false;
+    static bool g_doLight = false;
+    static bool g_fastTreeCut = false;
+    static DebugConsole* g_debugConsole = nullptr;
+    static GameObject* g_light = nullptr;
+}
 
 struct Scene {
     static void* ActiveMB() { return *Scene__ActiveMB; }
@@ -29,10 +50,21 @@ struct Cheats {
     static bool& UnlimitedHairspray() { return *Cheats__UnlimitedHairspray; }
 };
 
-struct DebugConsole {
-    void _addClothingOutfitRandom() { ((void(*)(MonoString*))DebugConsole___addClothingOutfitRandom->address())(nullptr); }
-    void _addAllStoryItems() { ((void(*)(void*))DebugConsole___addAllStoryItems->address())(nullptr); }
-    void _addAllItems() { ((void(*)(void*))DebugConsole___addAllItems->address())(nullptr); }
+struct DebugConsole : Component {
+    void _addClothingOutfitRandom() { 
+        void* args[1] = { nullptr };
+        DebugConsole___addClothingOutfitRandom->invoke(this, args);
+    }
+    
+    void _addAllStoryItems() { 
+        void* args[1] = { nullptr };
+        DebugConsole___addAllStoryItems->invoke(this, args);
+    }
+    
+    void _addAllItems() { 
+        void* args[1] = { nullptr };
+        DebugConsole___addAllItems->invoke(this, args);
+    }
 };
 
 struct LocalPlayer {
@@ -44,11 +76,12 @@ struct mutantController {
     List<GameObject*>* activeCannibals() { return *(List<GameObject*>**)((char*)this + mutantController__activeCannibals); }
 };
 
-void HaxSdk::InitializeGameData() {
-#define HAXSDK_FUNCTION(a, n, c, m, s)     c ## __ ## m = BackendClass::find(a, n, #c)->find_method(#m, s)
-#define HAXSDK_STATIC_FIELD(a, n, c, f, t) c ## __ ## f = (t*)BackendClass::find(a, n, #c)->find_static_field(#f)
-#define HAXSDK_FIELD_OFFSET(a, n, c, f)    c ## __ ## f = BackendClass::find(a, n, #c)->find_field(#f)->offset()
-#include "cheat_data.h"
+void ModMenu::Initialize() {
+    #define HAXSDK_FUNCTION(a, n, c, m, s)     c ## __ ## m = BackendClass::find(a, n, #c)->find_method(#m, s)
+    #define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  c ## __ ## m = BackendClass::find(a, n, #c)->find_method(mn, s)
+    #define HAXSDK_STATIC_FIELD(a, n, c, f, t) c ## __ ## f = (t*)BackendClass::find(a, n, #c)->find_static_field(#f)
+    #define HAXSDK_FIELD_OFFSET(a, n, c, f)    c ## __ ## f = BackendClass::find(a, n, #c)->find_field(#f)->offset()
+    #include "cheat_data.h"
 }
 
 void HaxSdk::RenderBackground() {
@@ -58,7 +91,46 @@ void HaxSdk::RenderBackground() {
 void HaxSdk::RenderMenu() {
     ImGui::Begin("Menu");
     if (Scene::ActiveMB()) {
+        if (!globals::g_debugConsole)
+            globals::g_debugConsole = (DebugConsole*)DebugConsole::alloc(BackendClass::find("Assembly-CSharp", "TheForest", "DebugConsole"));
+        if (!globals::g_light) {
+            globals::g_light = GameObject::ctor("PlayerLight98");
+            globals::g_light->get_transform()->set_parent(LocalPlayer::Transform());
+            Vector3 newPos = LocalPlayer::Transform()->get_position();
+            newPos.y += 2.F;
+            globals::g_light->get_transform()->set_position(newPos);
+            globals::g_light->SetActive(false);
+            Light* light = (Light*)globals::g_light->AddComponent(BackendClass::find("UnityEngine", "UnityEngine", "Light")->type()->system_type());
+            light->set_intensity(.5f);
+            light->set_range(1000.f);
+        }
         ImGui::Checkbox("Godmode", Cheats__GodMode);
+        ImGui::Checkbox("Infinite energy", Cheats__InfiniteEnergy);
+        ImGui::Checkbox("Infinite battery", &globals::g_infiniteBattery);
+        ImGui::Checkbox("Max fullness", &globals::g_maxFullness);
+        ImGui::Checkbox("No thirst", &globals::g_noThirst);
+        ImGui::Checkbox("Free building", Cheats__Creative);
+        ImGui::Checkbox("Unlimited items", &globals::g_unlimitedItems);
+        ImGui::SliderFloat("Jump amplification", &globals::g_jumpMult, 1.F, 15.F, "%.1f");
+        ImGui::Checkbox("No fall damage", &globals::g_noFallDamage);
+        ImGui::SliderFloat("Movement acceleration", &globals::g_speedMult, 1.F, 5.F, "%.1f");
+        ImGui::Checkbox("No fall damage", &globals::g_noCold);
+        ImGui::Checkbox("Max sanity", &globals::g_maxSanity);
+        if (ImGui::Button("Random outfit") && globals::g_debugConsole)
+            globals::g_debugConsole->_addClothingOutfitRandom();
+        if (ImGui::Button("Add all story items"))
+            globals::g_debugConsole->_addAllStoryItems();
+        if (ImGui::Button("Add all items"))
+            globals::g_debugConsole->_addAllItems();
+        ImGui::Checkbox("Infinite fuel", &globals::g_maxFuel);
+        ImGui::Checkbox("Unlimited hairspray", Cheats__UnlimitedHairspray);
+        ImGui::Checkbox("One hit kills", &globals::g_ohk);
+        bool tmp = globals::g_doLight;
+        ImGui::Checkbox("Light", &tmp);
+        if (tmp != globals::g_doLight) {
+            globals::g_doLight = tmp;
+            globals::g_light->SetActive(tmp);
+        }
     }
     ImGui::End();
 }

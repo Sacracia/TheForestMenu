@@ -17,6 +17,7 @@ typedef Il2CppClass  BackendClass;
 typedef Il2CppObject BackendObject;
 typedef Il2CppMethod BackendMethod;
 typedef Il2CppObject SystemType;
+typedef Il2CppString BackendString;
 
 
 //-------------------------------------------------------------------------

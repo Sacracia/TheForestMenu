@@ -24,6 +24,7 @@ typedef MonoClass  BackendClass;
 typedef MonoMethod BackendMethod;
 typedef MonoObject BackendObject;
 typedef MonoReflectionType SystemType;
+typedef MonoString BackendString;
 
 namespace HaxSdk {
     void InitializeBackendData();

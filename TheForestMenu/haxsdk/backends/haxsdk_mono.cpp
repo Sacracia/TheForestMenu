@@ -34,6 +34,7 @@ using t_mono_compile_method                = void* (*)(MonoMethod*);
 using t_mono_jit_info_table_find           = MonoJitInfo* (*)(MonoDomain*, void*);
 using t_mono_jit_info_get_method           = MonoMethod* (*)(MonoJitInfo* ji);
 using t_mono_runtime_invoke                = MonoObject* (*)(MonoMethod*, void*, void**, MonoObject**);
+using t_mono_print_unhandled_exception     = void (*)(MonoObject*);
 using t_mono_object_unbox                  = void* (*)(MonoObject*);
 using t_mono_vtable_get_static_field_data  = void* (*)(MonoVTable*);
 using t_mono_type_get_object               = MonoReflectionType* (*)(MonoDomain*, MonoType*);
@@ -42,7 +43,7 @@ using t_mono_runtime_object_init           = void (*)(MonoObject*);
 using t_mono_signature_get_return_type     = MonoType* (*)(MonoMethodSignature*);
 using t_mono_type_get_name                 = char* (*)(MonoType*);
 using t_mono_signature_get_param_count     = uint32_t (*)(MonoMethodSignature*);
-using t_mono_signature_get_params     = MonoType* (*)(MonoMethodSignature*, void**);
+using t_mono_signature_get_params          = MonoType* (*)(MonoMethodSignature*, void**);
 
 static t_mono_get_root_domain              mono_get_root_domain;
 static t_mono_domain_assembly_open         mono_domain_assembly_open;
@@ -71,6 +72,7 @@ static t_mono_signature_get_return_type    mono_signature_get_return_type;
 static t_mono_type_get_name                mono_type_get_name;
 static t_mono_signature_get_param_count    mono_signature_get_param_count;
 static t_mono_signature_get_params         mono_signature_get_params;
+static t_mono_print_unhandled_exception    mono_print_unhandled_exception;
 
 static void     InitializeMono(HMODULE hMono);
 static HMODULE  GetMonoHandle();
@@ -136,7 +138,9 @@ static HMODULE GetMonoHandle() {
 
 #pragma region MonoObject
 MonoObject* MonoObject::alloc(MonoClass* klass) {
-    return mono_object_new(MonoDomain::root(), klass);
+    auto ret = mono_object_new(MonoDomain::root(), klass);
+    //mono_runtime_object_init(ret);
+    return ret;
 }
 
 void* MonoObject::unbox() {

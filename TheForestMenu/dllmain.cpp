@@ -9,7 +9,7 @@ static void Start() {
 	LOG_INIT(DEBUG, true);
 	HaxSdk::InitializeBackendData();
     HaxSdk::InitializeUnityData();
-    HaxSdk::InitializeGameData();
+    ModMenu::Initialize();
 	HaxSdk::ImplementImGui(GraphicsApi_DirectX11);
 }
 

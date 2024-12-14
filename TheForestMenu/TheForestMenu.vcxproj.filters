@@ -21,9 +21,6 @@
     <ClCompile Include="haxsdk\backends\haxsdk_mono.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="haxsdk\cheat\cheat.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="haxsdk\logger\logger.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
@@ -86,31 +83,7 @@
     <ClInclude Include="haxsdk\backends\haxsdk_mono.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="haxsdk\cheat\cheat.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="haxsdk\cheat\cheat_data.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="haxsdk\logger\logger.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="haxsdk\third_party\detours\x64\detours.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="haxsdk\third_party\detours\x64\detver.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="haxsdk\third_party\detours\x64\syelog.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="haxsdk\third_party\detours\x86\detours.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="haxsdk\third_party\detours\x86\detver.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="haxsdk\third_party\detours\x86\syelog.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="haxsdk\third_party\imgui\backend\imgui_impl_dx9.h">
@@ -176,5 +149,31 @@
     <ClInclude Include="cheat_data.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="haxsdk\third_party\detours\x64\detours.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="haxsdk\third_party\detours\x64\detver.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="haxsdk\third_party\detours\x64\syelog.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="haxsdk\third_party\detours\x86\detours.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="haxsdk\third_party\detours\x86\detver.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="haxsdk\third_party\detours\x86\syelog.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="haxsdk\third_party\detours\x64\detours.lib" />
+    <Library Include="haxsdk\third_party\detours\x86\detours.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="haxsdk\third_party\detours\x64\detours.pdb" />
+    <None Include="haxsdk\third_party\detours\x86\detours.pdb" />
   </ItemGroup>
 </Project>
