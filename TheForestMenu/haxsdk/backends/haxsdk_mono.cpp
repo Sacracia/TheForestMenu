@@ -44,6 +44,7 @@ using t_mono_signature_get_return_type     = MonoType* (*)(MonoMethodSignature*)
 using t_mono_type_get_name                 = char* (*)(MonoType*);
 using t_mono_signature_get_param_count     = uint32_t (*)(MonoMethodSignature*);
 using t_mono_signature_get_params          = MonoType* (*)(MonoMethodSignature*, void**);
+using t_mono_method_get_unmanaged_thunk    = void* (*)(MonoMethod*);
 
 static t_mono_get_root_domain              mono_get_root_domain;
 static t_mono_domain_assembly_open         mono_domain_assembly_open;
@@ -73,6 +74,7 @@ static t_mono_type_get_name                mono_type_get_name;
 static t_mono_signature_get_param_count    mono_signature_get_param_count;
 static t_mono_signature_get_params         mono_signature_get_params;
 static t_mono_print_unhandled_exception    mono_print_unhandled_exception;
+static t_mono_method_get_unmanaged_thunk   mono_method_get_unmanaged_thunk;
 
 static void     InitializeMono(HMODULE hMono);
 static HMODULE  GetMonoHandle();
@@ -118,6 +120,7 @@ static void InitializeMono(HMODULE hMono) {
     HAX_MONO_PROC(mono_type_get_name);
     HAX_MONO_PROC(mono_signature_get_param_count);
     HAX_MONO_PROC(mono_signature_get_params);
+    mono_method_get_unmanaged_thunk = (t_mono_method_get_unmanaged_thunk)GetProcAddress(hMono, "mono_method_get_unmanaged_thunk");
 }
 
 static HMODULE GetMonoHandle() {
@@ -200,7 +203,7 @@ MonoType* MonoClass::type() {
     return mono_class_get_type(this);
 }
 
-MonoMethod* MonoClass::find_method(const char* name, const char* sig) {
+BackendMethod MonoClass::find_method(const char* name, const char* sig) {
     void* iter = nullptr;
     MonoMethod* pMethod;
     char buff[255];
@@ -208,12 +211,14 @@ MonoMethod* MonoClass::find_method(const char* name, const char* sig) {
         if (strcmp(pMethod->name(), name) == 0) {
             memset(buff, 0, 255);
             pMethod->signature(buff);
-            if (strcmp(buff, sig) == 0)
-                return pMethod;
+            if (strcmp(buff, sig) == 0) {
+                void* ptr = mono_method_get_unmanaged_thunk ? mono_method_get_unmanaged_thunk(pMethod) : mono_compile_method(pMethod);
+                return { pMethod, ptr };
+            }
         }
     }
     HAX_ASSERT(false, std::format("Method {} of {} not found in {}", name, sig, this->m_name).c_str());
-    return nullptr;
+    return { nullptr, nullptr };
 }
 
 MonoObject* MonoMethod::invoke(void* obj, void** args) {

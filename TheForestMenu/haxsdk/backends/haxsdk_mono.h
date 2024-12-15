@@ -21,7 +21,6 @@ struct  MonoThread;
 struct  MonoVTable;
 struct  MonoMethodSignature;
 typedef MonoClass  BackendClass;
-typedef MonoMethod BackendMethod;
 typedef MonoObject BackendObject;
 typedef MonoReflectionType SystemType;
 typedef MonoString BackendString;
@@ -91,6 +90,11 @@ private:
     MonoClass*              m_class;
 };
 
+struct BackendMethod {
+    MonoMethod*             pBase;
+    void*                   ptr;
+};
+
 struct MonoAssembly {
     MonoClass*              find_class(const char* name_space, const char* name);
 };
@@ -104,7 +108,7 @@ struct MonoClass {
     const char*             name()      { return m_name;}
     const char*             namespaze() { return m_namespace;}
     MonoType*               type();
-    MonoMethod*             find_method(const char* name, const char* params);
+    BackendMethod           find_method(const char* name, const char* params);
     void*                   find_static_field(const char* name);
     MonoClassField*         find_field(const char* name);
 private:

@@ -15,7 +15,6 @@ struct  Il2CppImage;
 struct  Il2CppThread;
 typedef Il2CppClass  BackendClass;
 typedef Il2CppObject BackendObject;
-typedef Il2CppMethod BackendMethod;
 typedef Il2CppObject SystemType;
 typedef Il2CppString BackendString;
 
@@ -42,7 +41,7 @@ private:
 };
 
 struct Il2CppMethod final {
-    void*                   address() { return m_address; }
+    void*                   ptr() { return m_address; }
     Il2CppClass*            klass();
     const char*             name();
     void                    signature(char* buff);
@@ -50,6 +49,11 @@ public:
     Il2CppObject*           invoke(void* obj, void** args);
 private:
     void*                   m_address;
+};
+
+struct BackendMethod {
+    Il2CppMethod*           pBase;
+    void*                   ptr;
 };
 
 struct Il2CppType {
@@ -70,7 +74,7 @@ struct Il2CppClass final {
     Il2CppType*             type();
 public:
     static Il2CppClass*     find(const char* assembly, const char* name_space, const char* name);
-    Il2CppMethod*           find_method(const char* name, const char* params);
+    BackendMethod           find_method(const char* name, const char* params);
     void*                   find_static_field(const char* name);
     Il2CppClassField*       find_field(const char* name);
 private:

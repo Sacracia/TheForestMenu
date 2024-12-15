@@ -10,9 +10,11 @@ struct mutantController;
 struct Scene;
 struct Cheats;
 struct DebugConsole;
+struct AchievementData;
+struct WeatherSystem;
 
-#define HAXSDK_FUNCTION(a, n, c, m, s)          BackendMethod* c ## __ ## m
-#define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  BackendMethod* c ## __ ## m
+#define HAXSDK_FUNCTION(a, n, c, m, s)          BackendMethod c ## __ ## m
+#define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  BackendMethod c ## __ ## m
 #define HAXSDK_STATIC_FIELD(a, n, c, f, t)      static t* c ## __ ## f
 #define HAXSDK_FIELD_OFFSET(a, n, c, f)         static int c ## __ ## f
 #include "cheat_data.h"
@@ -53,17 +55,17 @@ struct Cheats {
 struct DebugConsole : Component {
     void _addClothingOutfitRandom() { 
         void* args[1] = { nullptr };
-        DebugConsole___addClothingOutfitRandom->invoke(this, args);
+        DebugConsole___addClothingOutfitRandom.pBase->invoke(this, args);
     }
     
     void _addAllStoryItems() { 
         void* args[1] = { nullptr };
-        DebugConsole___addAllStoryItems->invoke(this, args);
+        DebugConsole___addAllStoryItems.pBase->invoke(this, args);
     }
     
     void _addAllItems() { 
         void* args[1] = { nullptr };
-        DebugConsole___addAllItems->invoke(this, args);
+        DebugConsole___addAllItems.pBase->invoke(this, args);
     }
 };
 
@@ -74,6 +76,21 @@ struct LocalPlayer {
 
 struct mutantController {
     List<GameObject*>* activeCannibals() { return *(List<GameObject*>**)((char*)this + mutantController__activeCannibals); }
+};
+
+struct AccountInfo {
+    static bool UnlockAchievement(AchievementData* ach) {
+        void* args[1] = { ach };
+        return AccountInfo__UnlockAchievement.pBase->invoke(nullptr, args);
+    }
+};
+
+struct WeatherSystem {
+    enum RainTypes { None, Light, Medium, Heavy };
+    void TurnOn(RainTypes type) {
+        void* args[1] = {&type};
+        WeatherSystem__TurnOn.pBase->invoke(this, args);
+    }
 };
 
 void ModMenu::Initialize() {
@@ -131,6 +148,19 @@ void HaxSdk::RenderMenu() {
             globals::g_doLight = tmp;
             globals::g_light->SetActive(tmp);
         }
+        if (ImGui::Button("Unlock all achievements")) {
+            Array<AchievementData*>* achievements = *Achievements__Data;
+            for (int i = 0; i < achievements->size(); ++i)
+                AccountInfo::UnlockAchievement(achievements->data()[i]);
+        }
+        ImGui::Checkbox("Tree cut", &globals::g_fastTreeCut);
+        if (ImGui::Button("None")) (*Scene__WeatherSystem)->TurnOn(WeatherSystem::None);
+        ImGui::SameLine();
+        if (ImGui::Button("Light")) (*Scene__WeatherSystem)->TurnOn(WeatherSystem::Light);
+        ImGui::SameLine();
+        if (ImGui::Button("Medium")) (*Scene__WeatherSystem)->TurnOn(WeatherSystem::Medium);
+        ImGui::SameLine();
+        if (ImGui::Button("Heavy")) (*Scene__WeatherSystem)->TurnOn(WeatherSystem::Heavy);
     }
     ImGui::End();
 }

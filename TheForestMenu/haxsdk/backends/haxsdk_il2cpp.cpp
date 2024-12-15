@@ -194,7 +194,7 @@ void Il2CppMethod::signature(char* buff) {
     strcat_s(buff, 255, ")");
 }
 
-Il2CppMethod* Il2CppClass::find_method(const char* name, const char* sig) {
+BackendMethod Il2CppClass::find_method(const char* name, const char* sig) {
     Il2CppMethod* pMethod;
     void* iter = 0;
     char buff[255];
@@ -203,11 +203,11 @@ Il2CppMethod* Il2CppClass::find_method(const char* name, const char* sig) {
             memset(buff, 0, sizeof(buff));
             pMethod->signature(buff);
             if (strcmp(sig, buff) == 0)
-                return pMethod;
+                return { pMethod, pMethod->ptr() };
         }
     }
     HAX_ASSERT(false, std::format("Method {} of {} not found in {}", name, sig, this->m_name).c_str());
-    return nullptr;
+    return { nullptr, nullptr };
 }
 
 void* Il2CppClass::find_static_field(const char* name) {
