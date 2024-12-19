@@ -6,108 +6,124 @@
 
 #define UNITY_CORE_ASSEMBLY "UnityEngine"
 
-#define HAXSDK_FUNCTION(a, n, c, m, s)          static BackendMethod c ## __ ## m
-#define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  static BackendMethod c ## __ ## m
+#define HAXSDK_FUNCTION(a, n, c, m, s)          static Method c ## __ ## m
+#define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  static Method c ## __ ## m
 #define HAXSDK_STATIC_FIELD(a, n, c, f, t)      static t* c ## __ ## f
 #define HAXSDK_FIELD_OFFSET(a, n, c, f)         static int c ## __ ## f
 #include "../unity/haxsdk_unity_data.h"
 
 void HaxSdk::InitializeUnityData() {
-    #define HAXSDK_FUNCTION(a, n, c, m, s)          c ## __ ## m = BackendClass::find(a, n, #c)->find_method(#m, s)
-    #define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  c ## __ ## m = BackendClass::find(a, n, #c)->find_method(mn, s)
-    #define HAXSDK_STATIC_FIELD(a, n, c, f, t)      c ## __ ## f = (t*)BackendClass::find(a, n, #c)->find_static_field(#f)
-    #define HAXSDK_FIELD_OFFSET(a, n, c, f)         c ## __ ## f = BackendClass::find(a, n, #c)->find_field(#f)->offset()
+    #define HAXSDK_FUNCTION(a, n, c, m, s)          c ## __ ## m = Class::Find(a, n, #c)->FindMethod(#m, s)
+    #define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  c ## __ ## m = Class::Find(a, n, #c)->FindMethod(mn, s)
+    #define HAXSDK_STATIC_FIELD(a, n, c, f, t)      c ## __ ## f = (t*)Class::Find(a, n, #c)->FindStaticField(#f)
+    #define HAXSDK_FIELD_OFFSET(a, n, c, f)         c ## __ ## f = Class::Find(a, n, #c)->FindField(#f)->Offset()
     #include "haxsdk_unity_data.h"
 }
 
-float Vector3::Distance(Vector3 a, Vector3 b) {
-    return reinterpret_cast<float(*)(Vector3, Vector3)>(Vector3__Distance.ptr)(a, b);
+float Unity::Vector3::Distance(Unity::Vector3& a, Unity::Vector3& b) {
+    Vector3 vector = { a.x - b.x, a.y - b.y, a.z - b.z };
+    return std::sqrt(vector.x * vector.x + vector.y + vector.y + vector.z + vector.z);
 }
 
-Array<BackendObject*>* Object::FindObjectsOfType(SystemType* type) {
-    return reinterpret_cast<Array<BackendObject*>*(*)(SystemType*)>(Object__FindObjectsOfType.ptr)(type);
+System::Array<Unity::Object*>* Unity::Object::FindObjectsOfType(System::Type* type) {
+    return reinterpret_cast<System::Array<Unity::Object*>*(*)(System::Type*)>(Object__FindObjectsOfType.Ptr())(type);
 }
 
-BackendObject* Object::FindObjectOfType(SystemType* type) {
-    return reinterpret_cast<BackendObject*(*)(SystemType*)>(Object__FindObjectOfType.ptr)(type);
+Unity::Object* Unity::Object::FindObjectOfType(System::Type* type) {
+    return reinterpret_cast<Unity::Object*(*)(System::Type*)>(Object__FindObjectOfType.Ptr())(type);
 }
 
-Vector3 Transform::get_position() {
-    return *(Vector3*)Transform__get_position.pBase->invoke(this, nullptr)->unbox();
+void Unity::Object::Destroy(Unity::Object* obj) { 
+    reinterpret_cast<void(*)(Unity::Object*,float)>(Object__Destroy.Ptr())(obj,0.F);
 }
 
-void Transform::set_position(Vector3 value) {
-    void* args[1] = { &value };
-    Transform__set_position.pBase->invoke(this, args);
+System::String* Unity::Object::get_name() {
+    return reinterpret_cast<System::String*(*)(Unity::Object*)>(Object__get_name.Ptr())(this);
 }
 
-Transform* Transform::get_parent() {
-    return reinterpret_cast<Transform*(*)(Transform*)>(Transform__get_parent.ptr)(this);
+Unity::Vector3 Unity::Transform::get_position() {
+    Vector3 res;
+    reinterpret_cast<void(*)(Unity::Transform*,Unity::Vector3*)>(Transform__INTERNAL_get_position.Ptr())(this,&res);
+    return res;
 }
 
-void Transform::set_parent(Transform* value) {
-    return reinterpret_cast<void(*)(Transform*, Transform*)>(Transform__set_parent.ptr)(this, value);
+void Unity::Transform::set_position(Unity::Vector3 value) {
+    reinterpret_cast<void(*)(Unity::Transform*,Unity::Vector3*)>(Transform__INTERNAL_set_position.Ptr())(this, &value);
 }
 
-Transform* Component::get_transform() {
-    return reinterpret_cast<Transform*(*)(Component*)>(Component__get_transform.ptr)(this);
+Unity::Transform* Unity::Transform::get_parent() {
+    return reinterpret_cast<Unity::Transform*(*)(Unity::Transform*)>(Transform__get_parent.Ptr())(this);
 }
 
-Transform* GameObject::get_transform() {
-    return reinterpret_cast<Transform*(*)(GameObject*)>(GameObject__get_transform.ptr)(this);
+void Unity::Transform::set_parent(Unity::Transform* value) {
+    return reinterpret_cast<void(*)(Transform*, Transform*)>(Transform__set_parent.Ptr())(this, value);
 }
 
-GameObject* GameObject::ctor() {
-    GameObject* pObj = (GameObject*)BackendObject::alloc(BackendClass::find(UNITY_CORE_ASSEMBLY, "UnityEngine", "GameObject"));
-    GameObject__ctor1.pBase->invoke(pObj, nullptr);
+Unity::Transform* Unity::Component::get_transform() {
+    return reinterpret_cast<Unity::Transform*(*)(Unity::Component*)>(Component__get_transform.Ptr())(this);
+}
+
+Unity::GameObject* Unity::Component::get_gameObject() {
+    return reinterpret_cast<Unity::GameObject*(*)(Unity::Component*)>(Component__get_gameObject.Ptr())(this);
+}
+
+Unity::Transform* Unity::GameObject::get_transform() {
+    return reinterpret_cast<Unity::Transform*(*)(Unity::GameObject*)>(GameObject__get_transform.Ptr())(this);
+}
+
+bool Unity::GameObject::get_activeSelf() {
+    return reinterpret_cast<bool(*)(Unity::GameObject*)>(GameObject__get_activeSelf.Ptr())(this);
+}
+
+Unity::GameObject* Unity::GameObject::ctor() {
+    return (Unity::GameObject*)System::Object::NewI(Class::Find(UNITY_CORE_ASSEMBLY, "UnityEngine", "GameObject"));
+}
+
+Unity::GameObject* Unity::GameObject::ctor(const char* name) {
+    Unity::GameObject* pObj = (GameObject*)Unity::GameObject::New(Class::Find(UNITY_CORE_ASSEMBLY, "UnityEngine", "GameObject"));
+    void* args[1] = { System::String::New(name) };
+    GameObject__ctor.Invoke(pObj, args);
     return pObj;
 }
 
-GameObject* GameObject::ctor(const char* name) {
-    GameObject* pObj = (GameObject*)BackendObject::alloc(BackendClass::find(UNITY_CORE_ASSEMBLY, "UnityEngine", "GameObject"));
-    void* args[1] = { BackendString::alloc(name) };
-    GameObject__ctor2.pBase->invoke(pObj, args);
-    return pObj;
+Unity::Component* Unity::GameObject::AddComponent(System::Type* componentType) {
+    return reinterpret_cast<Component*(*)(GameObject*,System::Type*)>(GameObject__AddComponent.Ptr())(this, componentType);
 }
 
-Component* GameObject::AddComponent(SystemType* componentType) {
-    return reinterpret_cast<Component*(*)(GameObject*,SystemType*)>(GameObject__AddComponent.ptr)(this, componentType);
+void Unity::GameObject::SetActive(bool value) {
+    return reinterpret_cast<void(*)(Unity::GameObject*,bool)>(GameObject__SetActive.Ptr())(this, value);
 }
 
-void GameObject::SetActive(bool value) {
-    return reinterpret_cast<void(*)(GameObject*,bool)>(GameObject__SetActive.ptr)(this, value);
+Unity::Camera* Unity::Camera::main() {
+    return reinterpret_cast<Unity::Camera*(*)()>(Camera__get_main.Ptr())();
 }
 
-Camera* Camera::main() {
-    return reinterpret_cast<Camera*(*)()>(Camera__get_main.ptr)();
+Unity::Vector3 Unity::Camera::WorldToScreenPoint(Unity::Vector3 position) {
+    Vector3 res;
+    reinterpret_cast<void(*)(Unity::Camera*,Unity::Vector3*,Unity::Vector3*)>(Camera__INTERNAL_CALL_WorldToScreenPoint.Ptr())(this, &position, &res);
+    return res;
 }
 
-Vector3 Camera::WorldToScreenPoint(Vector3 position) {
-    return reinterpret_cast<Vector3(*)(Camera*,Vector3)>(Camera__WorldToScreenPoint.ptr)(this, position);
+int Unity::Screen::width() {
+    return reinterpret_cast<int(*)()>(Screen__get_width.Ptr())();
 }
 
-int Screen::width() {
-    return reinterpret_cast<int(*)()>(Screen__get_width.ptr)();
+int Unity::Screen::height() {
+    return reinterpret_cast<int(*)()>(Screen__get_height.Ptr())();
 }
 
-int Screen::height() {
-    return reinterpret_cast<int(*)()>(Screen__get_height.ptr)();
+float Unity::Light::get_intensity() {
+    return reinterpret_cast<float(*)(Unity::Light*)>(Light__get_intensity.Ptr())(this);
 }
 
-float Light::get_intensity() {
-    return reinterpret_cast<float(*)(Light*)>(Light__get_intensity.ptr)(this);
+void Unity::Light::set_intensity(float value) {
+    reinterpret_cast<void(*)(Unity::Light*,float)>(Light__set_intensity.Ptr())(this, value);
 }
 
-void Light::set_intensity(float value) {
-    void* args[1] = { &value };
-    Light__set_intensity.pBase->invoke(this, args);
+float Unity::Light::get_range() {
+    return reinterpret_cast<float(*)(Unity::Light*)>(Light__get_range.Ptr())(this);
 }
 
-float Light::get_range() {
-    return reinterpret_cast<float(*)(Light*)>(Light__get_range.ptr)(this);
-}
-
-void Light::set_range(float value) {
-    void* args[1] = { &value };
-    Light__set_range.pBase->invoke(this, args);
+void Unity::Light::set_range(float value) {
+    return reinterpret_cast<void(*)(Unity::Light*,float)>(Light__set_range.Ptr())(this, value);
 }

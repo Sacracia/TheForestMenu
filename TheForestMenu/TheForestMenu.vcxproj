@@ -43,6 +43,7 @@
   <ItemGroup>
     <ClInclude Include="cheat.h" />
     <ClInclude Include="cheat_data.h" />
+    <ClInclude Include="font.h" />
     <ClInclude Include="haxsdk\backends\haxsdk_il2cpp.h" />
     <ClInclude Include="haxsdk\backends\haxsdk_mono.h" />
     <ClInclude Include="haxsdk\globals.h" />

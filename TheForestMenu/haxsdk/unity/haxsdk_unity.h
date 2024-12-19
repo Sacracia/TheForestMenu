@@ -6,72 +6,69 @@
 #include "../backends/haxsdk_il2cpp.h"
 #endif
 
+namespace Unity {
+    struct Object;
+    struct Vector3;
+    struct Transform;
+    struct Component;
+    struct GameObject;
+    struct Camera;
+    struct Screen;
+    struct Light;
+}
+
 namespace HaxSdk {
     void InitializeUnityData();
 }
 
-template <typename T>
-struct Array {
-    uint64_t              size() { return max_length; }
-    T*                    data() { return vector; }
-private:
-    void*                 __space[2];
-    uint64_t              max_length;
-    T                     vector[32];
-};
-
-template <class T>
-struct List {
-    void*               __space[2];
-    Array<T>*           items;
-    int32_t             size;
-    int32_t             version;
-    void*               syncRoot;
-};
-
-struct Vector3 {
-    static float        Distance(Vector3 a, Vector3 b);
+struct Unity::Vector3 {
+    static float        Distance(Unity::Vector3& a, Unity::Vector3& b);
 public:
     float x;
     float y;
     float z;
 };
 
-struct Object {
-    static Array<BackendObject*>*   FindObjectsOfType(SystemType* type);
-    static BackendObject*           FindObjectOfType(SystemType* type);
+struct Unity::Object : System::Object {
+    static System::Array<Unity::Object*>* FindObjectsOfType(System::Type* type);
+    static Unity::Object*                 FindObjectOfType(System::Type* type);
+    static void                           Destroy(Unity::Object* obj);
+public:
+    System::String*                       get_name();
 };
 
-struct Transform {
-    Vector3             get_position();
-    void                set_position(Vector3 value);
-    Transform*          get_parent();
-    void                set_parent(Transform* value);
+struct Unity::Component : Unity::Object {
+    Unity::Transform* get_transform();
+    Unity::GameObject* get_gameObject();
 };
 
-struct Component : BackendObject {
-    Transform*          get_transform();
+struct Unity::Transform : Unity::Component {
+    Unity::Vector3      get_position();
+    void                set_position(Unity::Vector3 value);
+    Unity::Transform*   get_parent();
+    void                set_parent(Unity::Transform* value);
 };
 
-struct GameObject : BackendObject {
-    static GameObject*  ctor();
-    static GameObject*  ctor(const char* name);
-    Transform*          get_transform();
-    Component*          AddComponent(SystemType* componentType);
-    void                SetActive(bool value);
+struct Unity::GameObject : Unity::Object {
+    static Unity::GameObject*  ctor();
+    static Unity::GameObject*  ctor(const char* name);
+    Unity::Transform*          get_transform();
+    bool                       get_activeSelf();
+    Unity::Component*          AddComponent(System::Type* componentType);
+    void                       SetActive(bool value);
 };
 
-struct Camera {
-    static Camera*      main();
-    Vector3             WorldToScreenPoint(Vector3 position);
+struct Unity::Camera {
+    static Unity::Camera*      main();
+    Unity::Vector3             WorldToScreenPoint(Unity::Vector3 position);
 };
 
-struct Screen {
+struct Unity::Screen {
     static int          width();
     static int          height();
 };
 
-struct Light {
+struct Unity::Light {
     void                set_intensity(float value);
     float               get_intensity();
     void                set_range(float value);

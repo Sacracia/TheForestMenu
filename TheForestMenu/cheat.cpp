@@ -6,42 +6,63 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include "haxsdk/third_party/detours/x64/detours.h"
+#include "font.h"
+
 struct mutantController;
 struct Scene;
 struct Cheats;
 struct DebugConsole;
 struct AchievementData;
 struct WeatherSystem;
+struct SpawnPoolsDict;
+struct FirstPersonCharacter;
+struct PlayerStats;
+struct InventoryItem;
+struct LocalPlayer;
 
-#define HAXSDK_FUNCTION(a, n, c, m, s)          BackendMethod c ## __ ## m
-#define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  BackendMethod c ## __ ## m
+#define HAXSDK_FUNCTION(a, n, c, m, s)          static Method c ## __ ## m
+#define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  static Method c ## __ ## m
 #define HAXSDK_STATIC_FIELD(a, n, c, f, t)      static t* c ## __ ## f
 #define HAXSDK_FIELD_OFFSET(a, n, c, f)         static int c ## __ ## f
 #include "cheat_data.h"
 
-namespace globals {
-    static bool g_infiniteBattery = false;
-    static bool g_maxFullness = false;
-    static bool g_noThirst = false;
-    static bool g_buildHack = false;
-    static bool g_unlimitedItems = false;
-    static bool g_noFallDamage = false;
-    static float g_speedMult = 1.F;
-    static float g_jumpMult = 1.F;
-    static bool g_noCold = false;
-    static bool g_maxSanity = false;
-    static bool g_maxFuel = false;
-    static bool g_esp = false;
-    static bool g_ohk = false;
-    static bool g_doLight = false;
-    static bool g_fastTreeCut = false;
-    static DebugConsole* g_debugConsole = nullptr;
-    static GameObject* g_light = nullptr;
-}
+static ImFont* g_espFont;
+static bool g_inGame = false;
+static Unity::Camera* g_camera;
+static bool g_infiniteBattery = false;
+static bool g_maxFullness = false;
+static bool g_noThirst = false;
+static bool g_buildHack = false;
+static bool g_unlimitedItems = false;
+static bool g_noFallDamage = false;
+static float g_speedMult = 1.F;
+static float g_jumpMult = 1.F;
+static bool g_noCold = false;
+static bool g_maxSanity = false;
+static bool g_maxFuel = false;
+static bool g_esp = false;
+static bool g_ohk = false;
+static bool g_doLight = false;
+static bool g_fastTreeCut = false;
+static DebugConsole* g_debugConsole = nullptr;
+static Unity::GameObject* g_light = nullptr;
+
+static void Hooked_LocalPlayer__Awake(LocalPlayer* __this);
+static void Hooked_LocalPlayer__OnDestroy(LocalPlayer* __this);
+static void Hooked_PlayerStats__Update(PlayerStats* __this);
+static bool Hooked_PlayerStats__get_Warm(PlayerStats* __this);
+static void Hooked_BatteryBasedLight__Update(void* __this);
+static int  Hooked_InventoryItem__Add(InventoryItem* __this, int amount, bool isEquiped);
+static void Hooked_FirstPersonCharacter__HandleLanded(FirstPersonCharacter* __this);
+static void Hooked_FirstPersonCharacter__HandleWalkingSpeedOptions(FirstPersonCharacter* __this);
+static void Hooked_FirstPersonCharacter__HandleRunningStaminaAndSpeed(FirstPersonCharacter* __this);
+static float Hooked_FirstPersonCharacter__CalculateJumpVerticalSpeed(FirstPersonCharacter* __this);
+static void Hooked_EnemyHealth__Hit(FirstPersonCharacter* __this, int damage);
 
 struct Scene {
     static void* ActiveMB() { return *Scene__ActiveMB; }
-    static GameObject* Yacht() { return *Scene__Yacht; }
+    static Unity::GameObject* Yacht() { return *Scene__Yacht; }
     static mutantController* MutantControler() { return *Scene__MutantControler; }
 };
 
@@ -52,36 +73,37 @@ struct Cheats {
     static bool& UnlimitedHairspray() { return *Cheats__UnlimitedHairspray; }
 };
 
-struct DebugConsole : Component {
+struct DebugConsole : Unity::Component {
     void _addClothingOutfitRandom() { 
         void* args[1] = { nullptr };
-        DebugConsole___addClothingOutfitRandom.pBase->invoke(this, args);
+        DebugConsole___addClothingOutfitRandom.Invoke(this, args);
     }
     
     void _addAllStoryItems() { 
         void* args[1] = { nullptr };
-        DebugConsole___addAllStoryItems.pBase->invoke(this, args);
+        DebugConsole___addAllStoryItems.Invoke(this, args);
     }
     
     void _addAllItems() { 
         void* args[1] = { nullptr };
-        DebugConsole___addAllItems.pBase->invoke(this, args);
+        DebugConsole___addAllItems.Invoke(this, args);
     }
 };
 
 struct LocalPlayer {
-    static GameObject* GameObject() { return *LocalPlayer__GameObject; }
-    static Transform* Transform() { return *LocalPlayer__Transform; }
+    static Unity::GameObject* GameObject() { return *LocalPlayer__GameObject; }
+    static Unity::Transform* Transform() { return *LocalPlayer__Transform; }
+    static PlayerStats* Stats() { return *LocalPlayer__Stats; }
 };
 
 struct mutantController {
-    List<GameObject*>* activeCannibals() { return *(List<GameObject*>**)((char*)this + mutantController__activeCannibals); }
+    System::List<Unity::GameObject*>* activeCannibals() { return *(System::List<Unity::GameObject*>**)((char*)this + mutantController__activeCannibals); }
 };
 
 struct AccountInfo {
     static bool UnlockAchievement(AchievementData* ach) {
         void* args[1] = { ach };
-        return AccountInfo__UnlockAchievement.pBase->invoke(nullptr, args);
+        return AccountInfo__UnlockAchievement.Invoke(nullptr, args);
     }
 };
 
@@ -89,71 +111,148 @@ struct WeatherSystem {
     enum RainTypes { None, Light, Medium, Heavy };
     void TurnOn(RainTypes type) {
         void* args[1] = {&type};
-        WeatherSystem__TurnOn.pBase->invoke(this, args);
+        WeatherSystem__TurnOn.Invoke(this, args);
     }
 };
 
+struct SpawnPool {
+    System::List<Unity::Transform*>* _spawned() { return *(System::List<Unity::Transform*>**)((char*)this + SpawnPool___spawned); }
+};
+
+struct SpawnPoolsDict {
+    SpawnPool* get_Item(System::String* index) {
+        void* args[1] = { index };
+        return (SpawnPool*)SpawnPoolsDict__get_Item.Invoke(this, args);
+    }
+};
+
+struct PlayerStats {
+    float& Fullness() { return *(float*)((char*)this + PlayerStats__Fullness); }
+    float& Thirst() { return *(float*)((char*)this + PlayerStats__Thirst); }
+    float& BatteryCharge() { return *(float*)((char*)this + PlayerStats__BatteryCharge); }
+};
+
+struct InventoryItem {
+    int& _amount() { return *(int*)((char*)this + InventoryItem___amount); }
+};
+
+struct FirstPersonCharacter {
+    bool& allowFallDamage() { return *(bool*)((char*)this + FirstPersonCharacter__allowFallDamage); }
+    float& speed() { return *(float*)((char*)this + FirstPersonCharacter__speed); }
+public:
+    void Die() { EnemyHealth__Die.Invoke(this, nullptr); }
+};
+
+static void Enable() {
+    g_debugConsole = (DebugConsole*)DebugConsole::NewI(Class::Find("Assembly-CSharp", "TheForest", "DebugConsole"));
+    g_light = Unity::GameObject::ctor("PlayerLight98");
+    g_light->get_transform()->set_parent(LocalPlayer::Transform());
+    Unity::Vector3 newPos = LocalPlayer::Transform()->get_position();
+    newPos.y += 2.F;
+    g_light->get_transform()->set_position(newPos);
+    g_light->SetActive(false);
+    Unity::Light* light = (Unity::Light*)g_light->AddComponent(Class::Find("UnityEngine", "UnityEngine", "Light")->Type());
+    light->set_intensity(.5f);
+    light->set_range(1000.f);
+    g_camera = Unity::Camera::main();
+    g_inGame = true;
+}
+
 void ModMenu::Initialize() {
-    #define HAXSDK_FUNCTION(a, n, c, m, s)     c ## __ ## m = BackendClass::find(a, n, #c)->find_method(#m, s)
-    #define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  c ## __ ## m = BackendClass::find(a, n, #c)->find_method(mn, s)
-    #define HAXSDK_STATIC_FIELD(a, n, c, f, t) c ## __ ## f = (t*)BackendClass::find(a, n, #c)->find_static_field(#f)
-    #define HAXSDK_FIELD_OFFSET(a, n, c, f)    c ## __ ## f = BackendClass::find(a, n, #c)->find_field(#f)->offset()
+    #define HAXSDK_FUNCTION(a, n, c, m, s)          c ## __ ## m = Class::Find(a, n, #c)->FindMethod(#m, s)
+    #define HAXSDK_FUNCTION_EXT(a, n, c, m, mn, s)  c ## __ ## m = Class::Find(a, n, #c)->FindMethod(mn, s)
+    #define HAXSDK_STATIC_FIELD(a, n, c, f, t)      c ## __ ## f = (t*)Class::Find(a, n, #c)->FindStaticField(#f)
+    #define HAXSDK_FIELD_OFFSET(a, n, c, f)         c ## __ ## f = Class::Find(a, n, #c)->FindField(#f)->Offset()
     #include "cheat_data.h"
+
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourAttach(&(PVOID&)(PlayerStats__Update.Ptr()), Hooked_PlayerStats__Update);
+    DetourAttach(&(PVOID&)(BatteryBasedLight__Update.Ptr()), Hooked_BatteryBasedLight__Update);
+    DetourAttach(&(PVOID&)(PlayerStats__get_Warm.Ptr()), Hooked_PlayerStats__get_Warm);
+    DetourAttach(&(PVOID&)(InventoryItem__Add.Ptr()), Hooked_InventoryItem__Add);
+    DetourAttach(&(PVOID&)(FirstPersonCharacter__HandleLanded.Ptr()), Hooked_FirstPersonCharacter__HandleLanded);
+    DetourAttach(&(PVOID&)(FirstPersonCharacter__HandleWalkingSpeedOptions.Ptr()), Hooked_FirstPersonCharacter__HandleWalkingSpeedOptions);
+    DetourAttach(&(PVOID&)(FirstPersonCharacter__HandleRunningStaminaAndSpeed.Ptr()), Hooked_FirstPersonCharacter__HandleRunningStaminaAndSpeed);
+    DetourAttach(&(PVOID&)(FirstPersonCharacter__CalculateJumpVerticalSpeed.Ptr()), Hooked_FirstPersonCharacter__CalculateJumpVerticalSpeed);
+    DetourAttach(&(PVOID&)(EnemyHealth__Hit.Ptr()), Hooked_EnemyHealth__Hit);
+    DetourAttach(&(PVOID&)(LocalPlayer__Awake.Ptr()), Hooked_LocalPlayer__Awake);
+    DetourAttach(&(PVOID&)(LocalPlayer__OnDestroy.Ptr()), Hooked_LocalPlayer__OnDestroy);
+    DetourTransactionCommit();
+
+    if (Scene::ActiveMB())
+        Enable();
+}
+
+static void AddText(const char* text, const ImVec2& pos, ImU32 col) {
+    ImVec2 textSize = g_espFont->CalcTextSizeA(18, FLT_MAX, 0.0f, text);
+    ImDrawList* pDrawList = ImGui::GetBackgroundDrawList();
+    pDrawList->AddText(g_espFont, 18, ImVec2(pos.x - textSize.x / 2.F + 1.F, pos.y - 1.F), IM_COL32_BLACK, text);
+    pDrawList->AddText(g_espFont, 18, ImVec2(pos.x - textSize.x / 2.F + 1.F, pos.y + 1.F), IM_COL32_BLACK, text);
+    pDrawList->AddText(g_espFont, 18, ImVec2(pos.x - textSize.x / 2.F - 1.F, pos.y + 1.F), IM_COL32_BLACK, text);
+    pDrawList->AddText(g_espFont, 18, ImVec2(pos.x - textSize.x / 2.F - 1.F, pos.y - 1.F), IM_COL32_BLACK, text);
+    pDrawList->AddText(g_espFont, 18, ImVec2(pos.x - textSize.x / 2.F, pos.y), col, text);
 }
 
 void HaxSdk::RenderBackground() {
-
+    if (g_inGame && g_esp) {
+        SpawnPoolsDict* dict = *PoolManager__Pools;
+        System::List<Unity::Transform*>* spawned = dict->get_Item(System::String::New("creatures"))->_spawned();
+        for (int32_t i = 0; i < spawned->Lenght(); ++i) {
+            Unity::GameObject* go = spawned->Data()[i]->get_gameObject();
+            if (go) {
+                Unity::Vector3 creaturePos = go->get_transform()->get_position();
+                Unity::Vector3 playerPos = LocalPlayer::Transform()->get_position();
+                float dist = Unity::Vector3::Distance(playerPos, creaturePos);
+                Unity::Vector3 screenPos = g_camera->WorldToScreenPoint(creaturePos);
+                if (screenPos.z > 0) {
+                    char* name = go->get_name()->UTF8();
+                    //ImGui::GetBackgroundDrawList()->AddLine(ImVec2(globals::g_screenWidth / 2.f, globals::g_screenHeight), ImVec2(screenPos.x, globals::g_screenHeight - screenPos.y), 0xFF00FF00, 1.5f);
+                    AddText(name, ImVec2(screenPos.x, globals::g_screenHeight - screenPos.y - 20.f), 0xFF00FF00);
+                }
+            }
+        }
+    }
 }
 
 void HaxSdk::RenderMenu() {
     ImGui::Begin("Menu");
-    if (Scene::ActiveMB()) {
-        if (!globals::g_debugConsole)
-            globals::g_debugConsole = (DebugConsole*)DebugConsole::alloc(BackendClass::find("Assembly-CSharp", "TheForest", "DebugConsole"));
-        if (!globals::g_light) {
-            globals::g_light = GameObject::ctor("PlayerLight98");
-            globals::g_light->get_transform()->set_parent(LocalPlayer::Transform());
-            Vector3 newPos = LocalPlayer::Transform()->get_position();
-            newPos.y += 2.F;
-            globals::g_light->get_transform()->set_position(newPos);
-            globals::g_light->SetActive(false);
-            Light* light = (Light*)globals::g_light->AddComponent(BackendClass::find("UnityEngine", "UnityEngine", "Light")->type()->system_type());
-            light->set_intensity(.5f);
-            light->set_range(1000.f);
-        }
+    if (g_inGame) {
         ImGui::Checkbox("Godmode", Cheats__GodMode);
         ImGui::Checkbox("Infinite energy", Cheats__InfiniteEnergy);
-        ImGui::Checkbox("Infinite battery", &globals::g_infiniteBattery);
-        ImGui::Checkbox("Max fullness", &globals::g_maxFullness);
-        ImGui::Checkbox("No thirst", &globals::g_noThirst);
+        ImGui::Checkbox("Infinite battery", &g_infiniteBattery);
+        ImGui::Checkbox("Max fullness", &g_maxFullness);
+        ImGui::Checkbox("No thirst", &g_noThirst);
         ImGui::Checkbox("Free building", Cheats__Creative);
-        ImGui::Checkbox("Unlimited items", &globals::g_unlimitedItems);
-        ImGui::SliderFloat("Jump amplification", &globals::g_jumpMult, 1.F, 15.F, "%.1f");
-        ImGui::Checkbox("No fall damage", &globals::g_noFallDamage);
-        ImGui::SliderFloat("Movement acceleration", &globals::g_speedMult, 1.F, 5.F, "%.1f");
-        ImGui::Checkbox("No fall damage", &globals::g_noCold);
-        ImGui::Checkbox("Max sanity", &globals::g_maxSanity);
-        if (ImGui::Button("Random outfit") && globals::g_debugConsole)
-            globals::g_debugConsole->_addClothingOutfitRandom();
+        ImGui::Checkbox("Unlimited items", &g_unlimitedItems);
+        ImGui::SliderFloat("Jump amplification", &g_jumpMult, 1.F, 15.F, "%.1f");
+        ImGui::Checkbox("No fall damage", &g_noFallDamage);
+        ImGui::SliderFloat("Movement acceleration", &g_speedMult, 1.F, 5.F, "%.1f");
+        ImGui::Checkbox("No fall damage", &g_noCold);
+        ImGui::Checkbox("Max sanity", &g_maxSanity);
+        if (ImGui::Button("Random outfit")) {
+            static Class* debugConsoleClass = Class::Find("Assembly-CSharp", "TheForest", "DebugConsole");
+            ((DebugConsole*)DebugConsole::NewI(debugConsoleClass))->_addClothingOutfitRandom();
+        }
         if (ImGui::Button("Add all story items"))
-            globals::g_debugConsole->_addAllStoryItems();
+            g_debugConsole->_addAllStoryItems();
         if (ImGui::Button("Add all items"))
-            globals::g_debugConsole->_addAllItems();
-        ImGui::Checkbox("Infinite fuel", &globals::g_maxFuel);
+            g_debugConsole->_addAllItems();
+        ImGui::Checkbox("Infinite fuel", &g_maxFuel);
         ImGui::Checkbox("Unlimited hairspray", Cheats__UnlimitedHairspray);
-        ImGui::Checkbox("One hit kills", &globals::g_ohk);
-        bool tmp = globals::g_doLight;
+        ImGui::Checkbox("One hit kills", &g_ohk);
+        bool tmp = g_doLight;
         ImGui::Checkbox("Light", &tmp);
-        if (tmp != globals::g_doLight) {
-            globals::g_doLight = tmp;
-            globals::g_light->SetActive(tmp);
+        if (tmp != g_doLight) {
+            g_doLight = tmp;
+            g_light->SetActive(tmp);
         }
         if (ImGui::Button("Unlock all achievements")) {
-            Array<AchievementData*>* achievements = *Achievements__Data;
-            for (int i = 0; i < achievements->size(); ++i)
-                AccountInfo::UnlockAchievement(achievements->data()[i]);
+            System::Array<AchievementData*>* achievements = *Achievements__Data;
+            for (int i = 0; i < achievements->Length(); ++i)
+                AccountInfo::UnlockAchievement(achievements->Data()[i]);
         }
-        ImGui::Checkbox("Tree cut", &globals::g_fastTreeCut);
+        ImGui::Checkbox("Tree cut", &g_fastTreeCut);
         if (ImGui::Button("None")) (*Scene__WeatherSystem)->TurnOn(WeatherSystem::None);
         ImGui::SameLine();
         if (ImGui::Button("Light")) (*Scene__WeatherSystem)->TurnOn(WeatherSystem::Light);
@@ -161,8 +260,76 @@ void HaxSdk::RenderMenu() {
         if (ImGui::Button("Medium")) (*Scene__WeatherSystem)->TurnOn(WeatherSystem::Medium);
         ImGui::SameLine();
         if (ImGui::Button("Heavy")) (*Scene__WeatherSystem)->TurnOn(WeatherSystem::Heavy);
+        ImGui::Checkbox("ESP", &g_esp);
     }
     ImGui::End();
+}
+
+static void Hooked_LocalPlayer__Awake(LocalPlayer* __this) {
+    reinterpret_cast<void(*)(LocalPlayer*)>(LocalPlayer__Awake.Ptr())(__this);
+    Enable();
+}
+
+static void Hooked_LocalPlayer__OnDestroy(LocalPlayer* __this) {
+    g_inGame = false;
+    Unity::Object::Destroy(g_light);
+    reinterpret_cast<void(*)(LocalPlayer*)>(LocalPlayer__OnDestroy.Ptr())(__this);
+}
+
+static void Hooked_PlayerStats__Update(PlayerStats* __this) {
+    if (g_infiniteBattery)
+        __this->BatteryCharge() = 100.f;
+    if (g_maxFullness)
+        __this->Fullness() = 100.f;
+    if (g_noThirst)
+        __this->Thirst() = 0.f;
+    reinterpret_cast<void(*)(PlayerStats*)>(PlayerStats__Update.Ptr())(__this);
+}
+
+static bool Hooked_PlayerStats__get_Warm(PlayerStats* __this) {
+    return g_noCold ? true : reinterpret_cast<bool(*)(PlayerStats*)>(PlayerStats__get_Warm.Ptr())(__this);
+}
+
+static void Hooked_BatteryBasedLight__Update(void* __this) {
+    if (g_infiniteBattery)
+        LocalPlayer::Stats()->BatteryCharge() = 100.f;
+    reinterpret_cast<void(*)(void*)>(BatteryBasedLight__Update.Ptr())(__this);
+}
+
+static int Hooked_InventoryItem__Add(InventoryItem* __this, int amount, bool isEquiped) {
+    if (g_unlimitedItems) {
+        __this->_amount() += amount;
+        return 0;
+    }
+    return reinterpret_cast<int(*)(InventoryItem*,int,bool)>(InventoryItem__Add.Ptr())(__this, amount, isEquiped);
+}
+
+static void Hooked_FirstPersonCharacter__HandleLanded(FirstPersonCharacter* __this) {
+    if (g_noFallDamage)
+        __this->allowFallDamage() = false;
+    reinterpret_cast<void(*)(FirstPersonCharacter*)>(FirstPersonCharacter__HandleLanded.Ptr())(__this);
+}
+
+static void Hooked_FirstPersonCharacter__HandleWalkingSpeedOptions(FirstPersonCharacter* __this) {
+    reinterpret_cast<void(*)(FirstPersonCharacter*)>(FirstPersonCharacter__HandleWalkingSpeedOptions.Ptr())(__this);
+    __this->speed() *= g_speedMult;
+}
+
+static void Hooked_FirstPersonCharacter__HandleRunningStaminaAndSpeed(FirstPersonCharacter* __this) {
+    reinterpret_cast<void(*)(FirstPersonCharacter*)>(FirstPersonCharacter__HandleRunningStaminaAndSpeed.Ptr())(__this);
+    __this->speed() *= g_speedMult;
+}
+
+static float Hooked_FirstPersonCharacter__CalculateJumpVerticalSpeed(FirstPersonCharacter* __this) {
+    return reinterpret_cast<float(*)(FirstPersonCharacter*)>(FirstPersonCharacter__CalculateJumpVerticalSpeed.Ptr())(__this) * g_jumpMult;
+}
+
+static void Hooked_EnemyHealth__Hit(FirstPersonCharacter* __this, int damage) {
+    if (g_ohk) {
+        __this->Die();
+        return;
+    }
+    reinterpret_cast<void(*)(FirstPersonCharacter*,int)>(EnemyHealth__Hit.Ptr())(__this, damage);
 }
 
 static ImVec4 HexToColor(std::string hex_string) {
@@ -177,11 +344,12 @@ void HaxSdk::ApplyStyle() {
     const HWND hDesktop = GetDesktopWindow();
     GetWindowRect(hDesktop, &desktop);
     float fontSize = std::round(13 * (float)desktop.bottom / 1080);
-    //std::cout << "Resolution, font: " << desktop.right << 'x' << desktop.bottom << ' ' << fontSize;
     ImGuiIO& io = ImGui::GetIO();
-    ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\trebucbd.ttf", fontSize);
+    io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\trebucbd.ttf", fontSize);
+    g_espFont = io.Fonts->AddFontFromMemoryTTF(g_fRubik, sizeof(g_fRubik), 32.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
 
     ImGuiStyle* styles = &ImGui::GetStyle();
+
     auto colors = styles->Colors;
     colors[ImGuiCol_Border] = HexToColor("26383FFF");
     colors[ImGuiCol_BorderShadow] = HexToColor("33333300");
