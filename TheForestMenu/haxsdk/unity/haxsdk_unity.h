@@ -15,14 +15,28 @@ namespace Unity {
     struct Camera;
     struct Screen;
     struct Light;
+    struct Quaternion;
 }
 
 namespace HaxSdk {
     void InitializeUnityData();
 }
 
+struct Unity::Quaternion {
+    static Unity::Quaternion GetIdentity() { return { 0.F, 0.F, 0.F, 1.F }; }
+public:
+    float x;
+    float y;
+    float z;
+    float w;
+};
+
 struct Unity::Vector3 {
-    static float        Distance(Unity::Vector3& a, Unity::Vector3& b);
+    static float                            Distance(Unity::Vector3& a, Unity::Vector3& b);
+    float                                   Distance(Unity::Vector3& other);
+    float                                   Distance(Unity::Vector3&& other);
+    Vector3                                 operator+(const Unity::Vector3& a) const;
+    Vector3                                 operator*(float mult) const;
 public:
     float x;
     float y;
@@ -30,47 +44,50 @@ public:
 };
 
 struct Unity::Object : System::Object {
-    static System::Array<Unity::Object*>* FindObjectsOfType(System::Type* type);
-    static Unity::Object*                 FindObjectOfType(System::Type* type);
-    static void                           Destroy(Unity::Object* obj);
+    static System::Array<Unity::Object*>*   FindObjectsOfType(System::Type* type);
+    static Unity::Object*                   FindObjectOfType(System::Type* type);
+    static void                             Destroy(Unity::Object* obj);
 public:
-    System::String*                       get_name();
+    System::String*                         GetName();
 };
 
 struct Unity::Component : Unity::Object {
-    Unity::Transform* get_transform();
-    Unity::GameObject* get_gameObject();
+    Unity::Transform*                       GetTransform();
+    Unity::GameObject*                      GetGameObject();
 };
 
 struct Unity::Transform : Unity::Component {
-    Unity::Vector3      get_position();
-    void                set_position(Unity::Vector3 value);
-    Unity::Transform*   get_parent();
-    void                set_parent(Unity::Transform* value);
+    Unity::Vector3                          GetPosition();
+    void                                    SetPosition(Unity::Vector3 value);
+    Unity::Transform*                       GetParent();
+    void                                    SetParent(Unity::Transform* value);
+    Unity::Vector3                          GetForward();
 };
 
 struct Unity::GameObject : Unity::Object {
-    static Unity::GameObject*  ctor();
-    static Unity::GameObject*  ctor(const char* name);
-    Unity::Transform*          get_transform();
-    bool                       get_activeSelf();
-    Unity::Component*          AddComponent(System::Type* componentType);
-    void                       SetActive(bool value);
+    static Unity::GameObject*               Ctor();
+    static Unity::GameObject*               Ctor(const char* name);
+    Unity::Transform*                       GetTransform();
+    void                                    SetLayer(int32_t value);
+    bool                                    GetActiveSelf();
+    Unity::Component*                       GetComponent(System::Type* type);
+    Unity::Component*                       AddComponent(System::Type* componentType);
+    void                                    SetActive(bool value);
 };
 
 struct Unity::Camera {
-    static Unity::Camera*      main();
-    Unity::Vector3             WorldToScreenPoint(Unity::Vector3 position);
+    static Unity::Camera*                   GetMain();
+    Unity::Vector3                          WorldToScreenPoint(Unity::Vector3 position);
 };
 
 struct Unity::Screen {
-    static int          width();
-    static int          height();
+    static int                              GetWidth();
+    static int                              GetHeight();
 };
 
 struct Unity::Light {
-    void                set_intensity(float value);
-    float               get_intensity();
-    void                set_range(float value);
-    float               get_range();
+    void                                    SetIntensity(float value);
+    float                                   GetIntensity();
+    void                                    SetRange(float value);
+    float                                   GetRange();
 };

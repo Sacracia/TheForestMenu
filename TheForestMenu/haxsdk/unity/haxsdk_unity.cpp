@@ -25,6 +25,24 @@ float Unity::Vector3::Distance(Unity::Vector3& a, Unity::Vector3& b) {
     return std::sqrt(vector.x * vector.x + vector.y + vector.y + vector.z + vector.z);
 }
 
+float Unity::Vector3::Distance(Unity::Vector3& other) {
+    Vector3 vector = { this->x - other.x, this->y - other.y, this->z - other.z };
+    return std::sqrt(vector.x * vector.x + vector.y + vector.y + vector.z + vector.z);
+}
+
+float Unity::Vector3::Distance(Unity::Vector3&& other) {
+    Vector3 vector = { this->x - other.x, this->y - other.y, this->z - other.z };
+    return std::sqrt(vector.x * vector.x + vector.y + vector.y + vector.z + vector.z);
+}
+
+Unity::Vector3 Unity::Vector3::operator+(const Unity::Vector3& a) const {
+    return { x + a.x, y + a.y, z + a.z };
+}
+
+Unity::Vector3 Unity::Vector3::operator*(float mult) const {
+    return { x * mult, y * mult, z * mult };
+}
+
 System::Array<Unity::Object*>* Unity::Object::FindObjectsOfType(System::Type* type) {
     return reinterpret_cast<System::Array<Unity::Object*>*(*)(System::Type*)>(Object__FindObjectsOfType.Ptr())(type);
 }
@@ -37,49 +55,57 @@ void Unity::Object::Destroy(Unity::Object* obj) {
     reinterpret_cast<void(*)(Unity::Object*,float)>(Object__Destroy.Ptr())(obj,0.F);
 }
 
-System::String* Unity::Object::get_name() {
+System::String* Unity::Object::GetName() {
     return reinterpret_cast<System::String*(*)(Unity::Object*)>(Object__get_name.Ptr())(this);
 }
 
-Unity::Vector3 Unity::Transform::get_position() {
+Unity::Vector3 Unity::Transform::GetPosition() {
     Vector3 res;
     reinterpret_cast<void(*)(Unity::Transform*,Unity::Vector3*)>(Transform__INTERNAL_get_position.Ptr())(this,&res);
     return res;
 }
 
-void Unity::Transform::set_position(Unity::Vector3 value) {
+void Unity::Transform::SetPosition(Unity::Vector3 value) {
     reinterpret_cast<void(*)(Unity::Transform*,Unity::Vector3*)>(Transform__INTERNAL_set_position.Ptr())(this, &value);
 }
 
-Unity::Transform* Unity::Transform::get_parent() {
+Unity::Transform* Unity::Transform::GetParent() {
     return reinterpret_cast<Unity::Transform*(*)(Unity::Transform*)>(Transform__get_parent.Ptr())(this);
 }
 
-void Unity::Transform::set_parent(Unity::Transform* value) {
+Unity::Vector3 Unity::Transform::GetForward() {
+    return *(Unity::Vector3*)Transform__get_forward.Invoke(this, nullptr)->Unbox();
+}
+
+void Unity::Transform::SetParent(Unity::Transform* value) {
     return reinterpret_cast<void(*)(Transform*, Transform*)>(Transform__set_parent.Ptr())(this, value);
 }
 
-Unity::Transform* Unity::Component::get_transform() {
+Unity::Transform* Unity::Component::GetTransform() {
     return reinterpret_cast<Unity::Transform*(*)(Unity::Component*)>(Component__get_transform.Ptr())(this);
 }
 
-Unity::GameObject* Unity::Component::get_gameObject() {
+Unity::GameObject* Unity::Component::GetGameObject() {
     return reinterpret_cast<Unity::GameObject*(*)(Unity::Component*)>(Component__get_gameObject.Ptr())(this);
 }
 
-Unity::Transform* Unity::GameObject::get_transform() {
+Unity::Transform* Unity::GameObject::GetTransform() {
     return reinterpret_cast<Unity::Transform*(*)(Unity::GameObject*)>(GameObject__get_transform.Ptr())(this);
 }
 
-bool Unity::GameObject::get_activeSelf() {
+void Unity::GameObject::SetLayer(int32_t value) {
+    return reinterpret_cast<void(*)(Unity::GameObject*,int32_t)>(GameObject__set_layer.Ptr())(this, value);
+}
+
+bool Unity::GameObject::GetActiveSelf() {
     return reinterpret_cast<bool(*)(Unity::GameObject*)>(GameObject__get_activeSelf.Ptr())(this);
 }
 
-Unity::GameObject* Unity::GameObject::ctor() {
+Unity::GameObject* Unity::GameObject::Ctor() {
     return (Unity::GameObject*)System::Object::NewI(Class::Find(UNITY_CORE_ASSEMBLY, "UnityEngine", "GameObject"));
 }
 
-Unity::GameObject* Unity::GameObject::ctor(const char* name) {
+Unity::GameObject* Unity::GameObject::Ctor(const char* name) {
     Unity::GameObject* pObj = (GameObject*)Unity::GameObject::New(Class::Find(UNITY_CORE_ASSEMBLY, "UnityEngine", "GameObject"));
     void* args[1] = { System::String::New(name) };
     GameObject__ctor.Invoke(pObj, args);
@@ -90,11 +116,16 @@ Unity::Component* Unity::GameObject::AddComponent(System::Type* componentType) {
     return reinterpret_cast<Component*(*)(GameObject*,System::Type*)>(GameObject__AddComponent.Ptr())(this, componentType);
 }
 
-void Unity::GameObject::SetActive(bool value) {
-    return reinterpret_cast<void(*)(Unity::GameObject*,bool)>(GameObject__SetActive.Ptr())(this, value);
+Unity::Component* Unity::GameObject::GetComponent(System::Type* type) {
+    return reinterpret_cast<Unity::Component*(*)(Unity::GameObject*,System::Type*)>(GameObject__GetComponent.Ptr())(this, type);
 }
 
-Unity::Camera* Unity::Camera::main() {
+void Unity::GameObject::SetActive(bool value) {
+    void* args[1] = {&value};
+    GameObject__SetActive.Invoke(this, args);
+}
+
+Unity::Camera* Unity::Camera::GetMain() {
     return reinterpret_cast<Unity::Camera*(*)()>(Camera__get_main.Ptr())();
 }
 
@@ -104,26 +135,26 @@ Unity::Vector3 Unity::Camera::WorldToScreenPoint(Unity::Vector3 position) {
     return res;
 }
 
-int Unity::Screen::width() {
+int Unity::Screen::GetWidth() {
     return reinterpret_cast<int(*)()>(Screen__get_width.Ptr())();
 }
 
-int Unity::Screen::height() {
+int Unity::Screen::GetHeight() {
     return reinterpret_cast<int(*)()>(Screen__get_height.Ptr())();
 }
 
-float Unity::Light::get_intensity() {
+float Unity::Light::GetIntensity() {
     return reinterpret_cast<float(*)(Unity::Light*)>(Light__get_intensity.Ptr())(this);
 }
 
-void Unity::Light::set_intensity(float value) {
+void Unity::Light::SetIntensity(float value) {
     reinterpret_cast<void(*)(Unity::Light*,float)>(Light__set_intensity.Ptr())(this, value);
 }
 
-float Unity::Light::get_range() {
+float Unity::Light::GetRange() {
     return reinterpret_cast<float(*)(Unity::Light*)>(Light__get_range.Ptr())(this);
 }
 
-void Unity::Light::set_range(float value) {
+void Unity::Light::SetRange(float value) {
     return reinterpret_cast<void(*)(Unity::Light*,float)>(Light__set_range.Ptr())(this, value);
 }

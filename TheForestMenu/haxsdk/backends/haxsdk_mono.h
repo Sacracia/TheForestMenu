@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <iostream>
 
 //-------------------------------------------------------------------------
 // [SECTION] FORWARD DECLARATIONS OF BASE STRUCTURES
@@ -11,6 +12,7 @@ namespace System {
     template <class T> struct Array;
     struct String;
     template <class T> struct List;
+    template <class TKey, class TValue> struct Dictionary;
 }
 struct Field;
 struct Method;
@@ -58,15 +60,21 @@ private:
     void*                   m_syncRoot;
 };
 
-struct System::String {
+struct System::String : System::Object {
     static System::String*  New(const char* data);
+    static System::String*  Concat(System::String* s1, System::String* s2);
     wchar_t*                Data()   { return m_chars; }
     int32_t                 Length() { return m_length; }
     char*                   UTF8();
 private:
-    System::Object          m_object;
     int32_t                 m_length;
     wchar_t                 m_chars[32];
+};
+
+template <class TKey, class TValue>
+struct System::Dictionary : System::Object {
+    bool                    ContainsKey(TKey key);
+    bool                    ContainsKey(TKey* key);
 };
 
 struct Field {
@@ -118,13 +126,28 @@ struct Class {
     const char*             Namespace();
     System::Type*           Type();
     Method                  FindMethod(const char* name, const char* params);
+    Method                  FindMethod(const char* name);
     void*                   FindStaticField(const char* name);
     Field*                  FindField(const char* name);
 };
 
 struct Domain {
-    static Domain*      Root();
-    static Domain*      Current();
-    Assembly*           Assembly(const char* assembly);
-    void                AttachThread();
+    static Domain*          Root();
+    static Domain*          Current();
+    Assembly*               Assembly(const char* assembly);
+    void                    AttachThread();
 };
+
+template<class TKey, class TValue>
+inline bool System::Dictionary<TKey, TValue>::ContainsKey(TKey key) {
+    static Method pFunc = this->Klass()->FindMethod("ContainsKey");
+    void* args[1] = { &key };
+    return *(bool*)pFunc.Invoke(this, args)->Unbox();
+}
+
+template<class TKey, class TValue>
+inline bool System::Dictionary<TKey,TValue>::ContainsKey(TKey* key) {
+    static Method pFunc = this->Klass()->FindMethod("ContainsKey");
+    void* args[1] = { key };
+    return *(bool*)pFunc.Invoke(this, args)->Unbox();
+}

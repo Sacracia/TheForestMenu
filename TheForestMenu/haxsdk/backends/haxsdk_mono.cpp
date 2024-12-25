@@ -162,6 +162,12 @@ void* System::Object::Unbox() { return mono_object_unbox(this); }
 
 #pragma region String
 System::String* System::String::New(const char* data) { return mono_string_new(Domain::Root(), data); }
+System::String* System::String::Concat(System::String* s1, System::String* s2) {
+    static Method pMethod = Class::Find("mscorlib", "System", "String")->FindMethod("Concat", "System.String(System.String,System.String)");
+    void* args[] = { s1, s2 };
+    return (System::String*)pMethod.Invoke(nullptr, args);
+}
+
 char* System::String::UTF8() { return mono_string_to_utf8(this); }
 #pragma endregion
 
@@ -225,6 +231,20 @@ Method Class::FindMethod(const char* name, const char* sig) {
         }
     }
     HAX_ASSERT(false, std::format("Method {} of {} not found in {}", name, sig, this->Name()).c_str());
+    return { nullptr, nullptr };
+}
+Method Class::FindMethod(const char* name) {
+    void* iter = nullptr;
+    void* pMethod;
+    while (pMethod = mono_class_get_methods(this, &iter)) {
+        Method method = { (Method::MonoMethod*)pMethod, nullptr };
+        if (strcmp(mono_method_get_name(pMethod), name) == 0) {
+            method.m_ptr = mono_method_get_unmanaged_thunk ? mono_method_get_unmanaged_thunk(pMethod) : mono_compile_method(pMethod);
+            return method;
+        }
+    }
+
+    HAX_ASSERT(false, std::format("Method {} not found in {}", name, this->Name()).c_str());
     return { nullptr, nullptr };
 }
 void* Class::FindStaticField(const char* name) {

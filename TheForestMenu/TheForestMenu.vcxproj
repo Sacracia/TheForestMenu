@@ -72,6 +72,7 @@
     <ClInclude Include="haxsdk\third_party\imgui\imstb_truetype.h" />
     <ClInclude Include="haxsdk\unity\haxsdk_unity.h" />
     <ClInclude Include="haxsdk\unity\haxsdk_unity_data.h" />
+    <ClInclude Include="locales.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="haxsdk\third_party\detours\x64\detours.lib" />
@@ -197,11 +198,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>HAX_MONO</PreprocessorDefinitions>
+      <PreprocessorDefinitions>HAX_MONO;FREE</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

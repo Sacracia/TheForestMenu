@@ -170,6 +170,9 @@
     <ClInclude Include="font.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="locales.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="haxsdk\third_party\detours\x64\detours.lib" />
