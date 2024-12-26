@@ -24,9 +24,9 @@ const char* LOCALE_BOOSTY[2]        = {
 };
 
 const char* LOCALE_GODMODE[2]       = { "Godmode", reinterpret_cast<const char*>(u8"Бессмертие") };
-const char* LOCALE_VITALS[2]        = { "Vitals", reinterpret_cast<const char*>(u8"Статы") };
-const char* LOCALE_MISC[2]          = { "Miscellaneous", reinterpret_cast<const char*>(u8"Разное") };
-const char* LOCALE_MOVEMENT[2]      = { "Movement", reinterpret_cast<const char*>(u8"Передвижение") };
+const char* LOCALE_VITALS[2]        = { "VITALS", reinterpret_cast<const char*>(u8"СТАТЫ") };
+const char* LOCALE_MISC[2]          = { "MISC", reinterpret_cast<const char*>(u8"РАЗНОЕ") };
+const char* LOCALE_MOVEMENT[2]      = { "MOVEMENT", reinterpret_cast<const char*>(u8"ПЕРЕДВИЖЕНИЕ") };
 const char* LOCALE_INFENERGY[2]     = { "Infinite stamina", reinterpret_cast<const char*>(u8"Бесконечная выносливость") };
 const char* LOCALE_INFBATTERY[2]    = { "Infinite battery", reinterpret_cast<const char*>(u8"Бесконечный заряд батареи") };
 const char* LOCALE_FULLNESS[2]      = { "Max fullness", reinterpret_cast<const char*>(u8"Полная сытость") };
@@ -55,12 +55,13 @@ const char* LOCALE_SPEEDCLOCK[2]    = { "Speed up clock time", reinterpret_cast<
 const char* LOCALE_ARMOR[2]         = { "Armor", reinterpret_cast<const char*>(u8"Броня") };
 const char* LOCALE_ITEM[2]          = { "Item", reinterpret_cast<const char*>(u8"Предмет") };
 const char* LOCALE_RAIN[2]          = { "Rain", reinterpret_cast<const char*>(u8"Дождь") };
-const char* LOCALE_CREATURES[2]     = { "Creatures", reinterpret_cast<const char*>(u8"Существа") };
+const char* LOCALE_CREATURES[2]     = { "CREATURES", reinterpret_cast<const char*>(u8"СУЩЕСТВА") };
 const char* LOCALE_ENEMY[2]         = { "Enemy", reinterpret_cast<const char*>(u8"Враг") };
 const char* LOCALE_ANIMAL[2]        = { "Animal", reinterpret_cast<const char*>(u8"Животное") };
 const char* LOCALE_INVISIBLE[2]     = { "Enemies cant see you", reinterpret_cast<const char*>(u8"Враги вас не видят") };
 const char* LOCALE_INFCONSUME[2]    = { "Infinite consumables", reinterpret_cast<const char*>(u8"Расходные предметы не кончаются") };
 const char* LOCALE_SKIPPLANE[2]     = { "Skip plane crash", reinterpret_cast<const char*>(u8"Пропускать крушение самолета") };
+const char* LOCALE_GENERAL[2]       = { "GENERAL", reinterpret_cast<const char*>(u8"ОБЩЕЕ") };
 
 // Buttons
 const char* LOCALE_GET_ARMOR[2]     = { "Get##Armor", reinterpret_cast<const char*>(u8"Получить##Armor") };

@@ -18,4 +18,6 @@ namespace HaxSdk {
     void RenderBackground();
     void ApplyStyle();
 	void ImplementImGui(GraphicsApi);
+    void RenderImages();
+    void* LoadTextureFromData(unsigned char* image_data, int image_width, int image_height);
 }

@@ -5,6 +5,5 @@
 #endif
 
 #include "globals.h"
-#include "logger/logger.h"
 #include "haxsdk_gui.h"
 #include "unity/haxsdk_unity.h"

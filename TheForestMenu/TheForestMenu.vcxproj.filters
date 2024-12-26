@@ -21,9 +21,6 @@
     <ClCompile Include="haxsdk\backends\haxsdk_mono.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="haxsdk\logger\logger.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="haxsdk\third_party\imgui\backend\imgui_impl_dx9.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
@@ -81,9 +78,6 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="haxsdk\backends\haxsdk_mono.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="haxsdk\logger\logger.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="haxsdk\third_party\imgui\backend\imgui_impl_dx9.h">
@@ -171,6 +165,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="locales.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="image.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

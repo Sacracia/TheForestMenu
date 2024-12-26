@@ -6,14 +6,17 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <shellapi.h>
 #include <vector>
 #include <format>
+#include <algorithm>
 
 #include "haxsdk/haxsdk.h"
 #include "haxsdk/third_party/imgui/imgui.h"
 #include "haxsdk/third_party/detours/x64/detours.h"
 #include "font.h"
 #include "locales.h"
+#include "image.h"
 
 struct mutantController;
 struct Scene;
@@ -40,6 +43,10 @@ struct EnemyHealth;
 #define HAXSDK_STATIC_FIELD(a, n, c, f, t)      static t* c ## __ ## f
 #define HAXSDK_FIELD_OFFSET(a, n, c, f)         static int c ## __ ## f
 #include "cheat_data.h"
+
+static ImTextureID g_BoostyTexture = nullptr;
+static ImVec2 g_textureSize;
+static ImVec2 g_modMenuSize = ImVec2(445.f, 600.f);
 
 static int g_curLocale = LOCALE_ENG;
 static ImFont* g_espFont;
@@ -325,6 +332,11 @@ void ModMenu::Initialize() {
         EnableCheat();
 }
 
+void HaxSdk::RenderImages() {
+    g_textureSize = ImVec2(301.f, 77.f);
+    g_BoostyTexture = HaxSdk::LoadTextureFromData(g_boostyImage, (int)g_textureSize.x, (int)g_textureSize.y);
+}
+
 static void AddText(const char* text, const ImVec2& pos, ImU32 col) {
     ImVec2 textSize = g_espFont->CalcTextSizeA(18, FLT_MAX, 0.0f, text);
     ImDrawList* pDrawList = ImGui::GetBackgroundDrawList();
@@ -564,6 +576,7 @@ static void RenderPlayerTab() {
 
 static void RenderItemsTab() {
     if (ImGui::BeginTabItem(LOCALE_ITEMS[g_curLocale])) {
+        ImGui::SeparatorText(LOCALE_GENERAL[g_curLocale]);
         ImGui::Checkbox(LOCALE_INFBATTERY[g_curLocale], &g_infiniteBattery);
         ImGui::Checkbox(LOCALE_BUILDING[g_curLocale], Cheats__Creative);
         ImGui::Checkbox(LOCALE_INFFUEL[g_curLocale], &g_maxFuel);
@@ -651,9 +664,9 @@ static void RenderMainMenuTab() {
 }
 
 void HaxSdk::RenderMenu() {
-    ImGui::SetNextWindowSize(ImVec2(445 * g_sizeScale , 600 * g_sizeScale), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(g_modMenuSize, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowBgAlpha(1);
-    ImGui::Begin("[SACRACIA] The Forest Menu");
+    ImGui::Begin("The Forest Mod Menu [by Sacracia]", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
     ImGui::BeginTabBar("TheForest#TopBar", ImGuiTabBarFlags_NoTabListScrollingButtons);
     if (g_inGame) {
         RenderPlayerTab();
@@ -665,6 +678,11 @@ void HaxSdk::RenderMenu() {
     }
     RenderSettingsTab();
     ImGui::EndTabBar();
+    if (g_BoostyTexture) {
+        ImGui::SetCursorPos(ImVec2(71.f, 504.f));
+        if (ImGui::ImageButton((ImTextureID)g_BoostyTexture, g_textureSize, ImVec2(0,0), ImVec2(1, 1), 0))
+            ShellExecute(0, 0, "http://www.google.com", 0, 0, SW_SHOW);
+    }
     ImGui::End();
 }
 
@@ -837,6 +855,9 @@ void HaxSdk::ApplyStyle() {
     ImGuiIO& io = ImGui::GetIO();
     io.Fonts->AddFontFromMemoryTTF(g_fTrebuc, sizeof(g_fTrebuc), fontSize, NULL, io.Fonts->GetGlyphRangesCyrillic());
     g_espFont = io.Fonts->AddFontFromMemoryTTF(g_fRubik, sizeof(g_fRubik), 32.0f, NULL, io.Fonts->GetGlyphRangesCyrillic());
+
+    g_modMenuSize.x *= g_sizeScale;
+    g_modMenuSize.y *= g_sizeScale;
 
     ImGuiStyle* styles = &ImGui::GetStyle();
 

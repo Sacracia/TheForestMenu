@@ -6,7 +6,6 @@
 #include "cheat.h"
 
 static void Start() {
-	LOG_INIT(DEBUG, true);
 	HaxSdk::InitializeBackendData();
     HaxSdk::InitializeUnityData();
     ModMenu::Initialize();

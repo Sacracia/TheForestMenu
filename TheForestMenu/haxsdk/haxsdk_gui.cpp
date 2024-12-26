@@ -3,6 +3,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <TlHelp32.h>
+#include <string>
+#include <algorithm>
+#include <fstream>
 
 // opengl
 #pragma comment(lib, "OpenGL32.lib")
@@ -32,6 +35,7 @@
 #pragma comment(lib, "haxsdk/third_party/detours/x86/detours.lib")
 #endif
 
+#define STB_IMAGE_IMPLEMENTATION
 #include "third_party/imgui/imgui.h"
 #include "third_party/imgui/imgui_internal.h"
 #include "third_party/imgui/backend/imgui_impl_dx9.h"
@@ -41,7 +45,7 @@
 #include "third_party/imgui/backend/imgui_impl_win32.h"
 #include "third_party/imgui/backend/imgui_impl_opengl3.h"
 
-#include "logger/logger.h"
+//#include "logger/logger.h"
 #include "globals.h"
 
 #ifdef HAX_MONO
@@ -86,6 +90,7 @@ namespace dx11 {
 }
 namespace dx12 {
     #include <dxgi1_4.h>
+#include <fstream>
     static int const                    NUM_BACK_BUFFERS = 3;
     static IDXGIFactory4*               g_dxgiFactory = NULL;
     static ID3D12Device*                g_pd3dDevice = NULL;
@@ -135,6 +140,7 @@ namespace dx11 {
     static void             Render(IDXGISwapChain* pSwapChain);
     static void             CreateRenderTarget(IDXGISwapChain* pSwapChain);
     static HRESULT WINAPI   HookedResizeBuffers(IDXGISwapChain* pSwapChain, UINT bufferCount, UINT width, UINT height, DXGI_FORMAT newFormat, UINT swapChainFlags);
+    static ImTextureID      LoadTextureFromData(unsigned char* image_data, int image_width, int image_height);
 }
 namespace dx12 {
     static void             Setup();
@@ -193,7 +199,6 @@ void HaxSdk::ImplementImGui(GraphicsApi graphicsApi) {
                 dx12::Setup();
             }
             if (moduleName == "vulkan-1.dll" && (graphicsApi & GraphicsApi_Vulkan)) {
-                LOG_INFO << "VULKAN graphics api found" << LOG_FLUSH;
             }
         } while (Module32Next(snapshot, &me));
     }
@@ -221,17 +226,14 @@ static LRESULT WINAPI HookedPresent(IDXGISwapChain* pSwapChain, UINT syncInterva
          DetourTransactionBegin();
          if ((g_graphicsApi & GraphicsApi_DirectX10) && pSwapChain->GetDevice(__uuidof(pDevice10), (void**)&pDevice10) == S_OK) {
              g_graphicsApi = GraphicsApi_DirectX10;
-             LOG_INFO << "GAME USES DIRECTX10" << LOG_FLUSH;
              DetourAttach(&(PVOID&)oResizeBuffers, dx10::HookedResizeBuffers);
          }
          else if ((g_graphicsApi & GraphicsApi_DirectX11) && pSwapChain->GetDevice(__uuidof(pDevice11), (void**)&pDevice11) == S_OK) {
              g_graphicsApi = GraphicsApi_DirectX11;
-             LOG_INFO << "GAME USES DIRECTX11" << LOG_FLUSH;
              DetourAttach(&(PVOID&)oResizeBuffers, dx11::HookedResizeBuffers);
          }
          else if ((g_graphicsApi & GraphicsApi_DirectX12) && pSwapChain->GetDevice(__uuidof(pDevice12), (void**)&pDevice12) == S_OK) {
              g_graphicsApi = GraphicsApi_DirectX12;
-             LOG_INFO << "GAME USES DIRECTX12" << LOG_FLUSH;
              DetourAttach(&(PVOID&)oResizeBuffers, dx12::HookedResizeBuffers);
              DetourAttach(&(PVOID&)dx12::oExecuteCommandLists, dx12::HookedExecuteCommandLists);
          }
@@ -295,12 +297,12 @@ static void InitImGuiContext(const ImGuiContextParams& params) {
         ImGui::CreateContext();
         ImGui_ImplWin32_Init(hwnd);
     }
+    HaxSdk::RenderImages();
 
     RECT windowRect;
     GetClientRect(hwnd, &windowRect);
     globals::g_screenHeight = static_cast<float>(windowRect.bottom - windowRect.top);
     globals::g_screenWidth = static_cast<float>(windowRect.right - windowRect.left);
-    LOG_DEBUG << "Game resolution is " << globals::g_screenWidth << 'x' << globals::g_screenHeight << '\n';
 
     HaxSdk::ApplyStyle();
     ImGuiIO& io = ImGui::GetIO();
@@ -374,16 +376,18 @@ static BOOL WINAPI HookedClipCursor(const RECT* lpRect) {
     return oClipCursor(globals::g_visible ? NULL : lpRect);
 }
 
+ImTextureID HaxSdk::LoadTextureFromData(unsigned char* image_data, int image_width, int image_height) {
+    return dx11::LoadTextureFromData(image_data, image_width, image_height);
+}
+
 namespace opengl {
     static void Hook() {
         HMODULE module = GetModuleHandleA("opengl32.dll");
 
         oSwapBuffers = (swapBuffers_t)GetProcAddress(module, "wglSwapBuffers");
         if (oSwapBuffers == 0) {
-            LOG_ERROR << "[OPENGL] Unable to find wglSwapBuffers. Hook not installed" << LOG_FLUSH;
             return;
         }
-        LOG_DEBUG << "[OPENGL] wglSwapBuffers address is " << oSwapBuffers << LOG_FLUSH;
         DetourTransactionBegin();
         DetourAttach(&(PVOID&)oSwapBuffers, HookedSwapBuffers);
         DetourTransactionCommit();
@@ -393,7 +397,6 @@ namespace opengl {
         if (!ImGui::GetCurrentContext()) {
             ImGuiContextParams params = { GraphicsApi_OpenGL, nullptr, hdc, nullptr };
             InitImGuiContext(params);
-            LOG_INFO << "GAME USES OPENGL" << LOG_FLUSH;
         }
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -415,7 +418,6 @@ namespace dx9 {
 
         LPDIRECT3D9 d3d9 = ::Direct3DCreate9(D3D_SDK_VERSION);
         if (d3d9 == NULL) {
-            LOG_ERROR << "[D3D9] Direct3DCreate9 failed. Hook not installed" << LOG_FLUSH;
             return;
         }
         LPDIRECT3DDEVICE9 dummyDev = NULL;
@@ -426,7 +428,6 @@ namespace dx9 {
         d3dpp.hDeviceWindow = g_dummyHWND;
         HRESULT result = d3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_NULLREF, d3dpp.hDeviceWindow, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &dummyDev);
         if (result != D3D_OK) {
-            LOG_ERROR << "[D3D9] IDirect3D9::CreateDevice returned " << result << ". Hook not installed" << LOG_FLUSH;
             d3d9->Release();
             return;
         }
@@ -434,9 +435,6 @@ namespace dx9 {
         void** pVTable = *(void***)(dummyDev);
         oEndScene = (endScene_t)pVTable[42];
         oReset = (reset_t)pVTable[16];
-
-        LOG_DEBUG << "[D3D9] IDirect3DDevice9::EndScene address is " << oEndScene << LOG_FLUSH;
-        LOG_DEBUG << "[D3D9] IDirect3DDevice9::Reset address is " << oReset << LOG_FLUSH;
 
         dummyDev->Release();
         d3d9->Release();
@@ -453,7 +451,6 @@ namespace dx9 {
             inited = true;
             ImGuiContextParams params = { GraphicsApi_DirectX9, pDevice, 0, nullptr };
             InitImGuiContext(params);
-            LOG_INFO << "GAME USES DIRECTX9" << LOG_FLUSH;
         }
 
         ImGui_ImplDX9_NewFrame();
@@ -476,7 +473,6 @@ namespace dx9 {
         ImGui_ImplDX9_CreateDeviceObjects();
         globals::g_screenHeight = static_cast<float>(pPresentationParameters->BackBufferHeight);
         globals::g_screenWidth = static_cast<float>(pPresentationParameters->BackBufferWidth);
-        LOG_DEBUG << "[D3D9] Resolution changed to " << globals::g_screenWidth << 'x' << globals::g_screenHeight << LOG_FLUSH;
         return result;
     }
 } // dx9
@@ -501,7 +497,6 @@ namespace dx10 {
         ID3D10Device* pDevice;
         HRESULT result = D3D10CreateDeviceAndSwapChain(NULL, D3D10_DRIVER_TYPE_NULL, NULL, 0, D3D10_SDK_VERSION, &swapChainDesc, &pSwapChain, &pDevice);
         if (result != S_OK) {
-            LOG_ERROR << "[D3D10] D3D10CreateDeviceAndSwapChain returned " << result << ". Hook not installed" << LOG_FLUSH;
             return;
         }
 
@@ -509,8 +504,6 @@ namespace dx10 {
         oPresent = (present_t)pVTable[8];
         oResizeBuffers = (resizeBuffers_t)pVTable[13];
 
-        LOG_DEBUG << "[D3D10] Present address is " << oPresent << LOG_FLUSH;
-        LOG_DEBUG << "[D3D10] ResizeBuffers address is " << oResizeBuffers << LOG_FLUSH;
 
         pSwapChain->Release();
         pDevice->Release();
@@ -549,7 +542,6 @@ namespace dx10 {
         }
         globals::g_screenHeight = static_cast<float>(height);
         globals::g_screenWidth = static_cast<float>(width);
-        LOG_DEBUG << "[D3D10] Resolution changed to " << globals::g_screenWidth << 'x' << globals::g_screenHeight << LOG_FLUSH;
         return oResizeBuffers(pSwapChain, bufferCount, width, height, newFormat, swapChainFlags);
     }
 
@@ -589,7 +581,6 @@ namespace dx11 {
         };
         HRESULT result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_NULL, NULL, 0, featureLevels, 2, D3D11_SDK_VERSION, &swapChainDesc, &pSwapChain, &pDevice, nullptr, &g_pDeviceContext);
         if (result != S_OK) {
-            LOG_ERROR << "[D3D11] D3D11CreateDeviceAndSwapChain returned " << result << ". Hook not installed" << LOG_FLUSH;
             return;
         }
 
@@ -600,17 +591,17 @@ namespace dx11 {
         pSwapChain->Release();
         pDevice->Release();
 
-        LOG_DEBUG << "[D3D11] Present address is " << oPresent << LOG_FLUSH;
-        LOG_DEBUG << "[D3D11] ResizeBuffers address is " << oResizeBuffers << LOG_FLUSH;
     }
 
     static void CreateRenderTarget(IDXGISwapChain* pSwapChain) {
         ID3D11Texture2D* pBackBuffer = NULL;
         pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
         if (pBackBuffer && g_pDevice) {
-            DXGI_SWAP_CHAIN_DESC sd;
-            pSwapChain->GetDesc(&sd);
-            g_pDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_pRenderTarget);
+            D3D11_RENDER_TARGET_VIEW_DESC desc = {};
+            memset(&desc, 0, sizeof(desc));
+            desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+            g_pDevice->CreateRenderTargetView(pBackBuffer, &desc, &g_pRenderTarget);
             pBackBuffer->Release();
         }
     }
@@ -644,10 +635,44 @@ namespace dx11 {
             g_pRenderTarget->Release();
             g_pRenderTarget = nullptr;
         }
-        LOG_DEBUG << "[D3D11] Resolution changed to " << globals::g_screenWidth << 'x' << globals::g_screenHeight << LOG_FLUSH;
         globals::g_screenHeight = static_cast<float>(height);
         globals::g_screenWidth = static_cast<float>(width);
         return oResizeBuffers(pSwapChain, bufferCount, width, height, newFormat, swapChainFlags);
+    }
+
+    static ImTextureID LoadTextureFromData(unsigned char* image_data, int image_width, int image_height) {
+        // Create texture
+        D3D11_TEXTURE2D_DESC desc;
+        ZeroMemory(&desc, sizeof(desc));
+        desc.Width = image_width;
+        desc.Height = image_height;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        desc.CPUAccessFlags = 0;
+
+        ID3D11Texture2D* pTexture = NULL;
+        D3D11_SUBRESOURCE_DATA subResource;
+        subResource.pSysMem = image_data;
+        subResource.SysMemPitch = desc.Width * 4;
+        subResource.SysMemSlicePitch = 0;
+        dx11::g_pDevice->CreateTexture2D(&desc, &subResource, &pTexture);
+
+        // Create texture view
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+        ZeroMemory(&srvDesc, sizeof(srvDesc));
+        srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = desc.MipLevels;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+        ID3D11ShaderResourceView* out_srv;
+        dx11::g_pDevice->CreateShaderResourceView(pTexture, &srvDesc, &out_srv);
+        pTexture->Release();
+
+        return (ImTextureID)out_srv;
     }
 } // dx11
 
@@ -674,7 +699,6 @@ namespace dx12 {
         if (swapChain1->QueryInterface(IID_PPV_ARGS(&g_pSwapChain)) != S_OK) { return; }
         for (UINT i = 0; i < NUM_BACK_BUFFERS; ++i) {
             if (g_pd3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&g_commandAllocators[i])) != S_OK) {
-                LOG_DEBUG << "CreateCommandAllocator failed" << LOG_FLUSH;
                 return;
             }
         }
@@ -691,9 +715,6 @@ namespace dx12 {
         oResizeBuffers = (resizeBuffers_t)pVTable[13];
         oExecuteCommandLists = (executeCommandLists_t)pCommandQueueVTable[10];
 
-        LOG_DEBUG << "[D3D12] oPresent address is " << oPresent << LOG_FLUSH;
-        LOG_DEBUG << "[D3D12] oResizeBuffers is " << oResizeBuffers << LOG_FLUSH;
-        LOG_DEBUG << "[D3D12] oExecuteCommandLists is " << oExecuteCommandLists << LOG_FLUSH;
 
         if (g_pd3dCommandQueue) {
             g_pd3dCommandQueue->Release();
@@ -838,7 +859,6 @@ namespace dx12 {
         }
         globals::g_screenHeight = static_cast<float>(height);
         globals::g_screenWidth = static_cast<float>(width);
-        LOG_DEBUG << "[D3D12] Resolution changed to " << globals::g_screenWidth << 'x' << globals::g_screenHeight << LOG_FLUSH;
         return oResizeBuffers(pSwapChain, bufferCount, width, height, newFormat, swapChainFlags);
     }
 
