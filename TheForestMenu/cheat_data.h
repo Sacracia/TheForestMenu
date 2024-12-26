@@ -57,7 +57,7 @@ HAXSDK_FUNCTION("Assembly-CSharp", "", EnemyHealth, Hit, "System.Void(System.Int
 HAXSDK_FUNCTION("Assembly-CSharp", "", EnemyHealth, Die, "System.Void()");
 HAXSDK_FUNCTION("Assembly-CSharp", "", animalHealth, Hit, "animalHealth.HitResult(System.Int32)");
 HAXSDK_FUNCTION("Assembly-CSharp", "", animalHealth, Die, "System.Void()");
-HAXSDK_FUNCTION("Assembly-CSharp", "", TreeHealth, DamageTree, "System.Void()");
+HAXSDK_FUNCTION("Assembly-CSharp", "", TreeHealth, Hit, "System.Void()");
 HAXSDK_FUNCTION("Assembly-CSharp", "", TreeHealth, Explosion, "System.Void(System.Single)");
 HAXSDK_FUNCTION("Assembly-CSharp", "", AnimalSpawnController, AttachAnimalToNetwork, "System.Void(AnimalSpawnZone,UnityEngine.GameObject)");
 HAXSDK_FUNCTION("Assembly-CSharp", "", PlaneCrashController, Start, "System.Void()");
@@ -81,7 +81,7 @@ HAXSDK_FUNCTION("Assembly-CSharp", "TheForest.Items.Inventory", PlayerInventory,
 HAXSDK_FUNCTION("Assembly-CSharp-firstpass", "PathologicalGames", SpawnPoolsDict, get_Item, "PathologicalGames.SpawnPool(System.String)");
 HAXSDK_FUNCTION("Assembly-CSharp-firstpass", "PathologicalGames", SpawnPoolsDict, ContainsKey, "System.Boolean(System.String)");
 HAXSDK_FUNCTION("Assembly-CSharp-firstpass", "PathologicalGames", SpawnPool, Spawn, "UnityEngine.Transform(System.String,UnityEngine.Vector3,UnityEngine.Quaternion)");
-HAXSDK_FUNCTION("bolt", "", BoltNetwork, get_isRunning, "System.Boolean()");
+HAXSDK_FUNCTION("bolt", "", BoltNetwork, get_isClient, "System.Boolean()");
 #undef HAXSDK_FUNCTION_EXT
 #undef HAXSDK_FUNCTION
 #endif

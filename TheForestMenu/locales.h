@@ -4,24 +4,8 @@
 #define LOCALE_RU  1
 
 const char* LOCALE_PREMENU[2]       = { "Load into world to see more options", reinterpret_cast<const char*>(u8"Загрузите мир чтобы увидеть больше функций") };
-const char* LOCALE_MENU[2]          = { "Menu", reinterpret_cast<const char*>(u8"Меню") };
-const char* LOCALE_NONETWORK[2]     = { "Mod prevents you from playing multiplayer!", reinterpret_cast<const char*>(u8"Мод не позволит вам играть в мультиплеер!") };
-const char* LOCALE_BOOSTY[2]        = { 
-    "If you want to support my work or get access to more options:\n"
-    " - Be able to play multiplayer\n"
-    " - Fast tree cutting\n"
-    " - Unlock achievements in steam\n"
-    " - Get all story items\n"
-    " - Locations ESP (Yacht, pit, plane, caves)\n"
-    "You can buy a subscription on my boosty <link>\n", 
-    reinterpret_cast<const char*>(u8"Если вы хотите поддержать мою работу\n или получить доступ к другим функциям:\n"
-    " - Возможность играть в мультиплеере\n"
-    " - Быстрая рубка деревьев\n"
-    " - Открыть стимовские достижения\n"
-    " - Получить все сюжетные предметы\n"
-    " - Показывать локации (яхта, яма, самолет, пещеры)\n"
-    "Вы можете купить подписку на boosty <ссылка>\n")
-};
+const char* LOCALE_MENU[2]          = { "Main menu", reinterpret_cast<const char*>(u8"Главное меню") };
+const char* LOCALE_NONETWORK[2]     = { "Free version prevents you from playing coop!", reinterpret_cast<const char*>(u8"Бесплатная версия не позволит вам играть в кооп!") };
 
 const char* LOCALE_GODMODE[2]       = { "Godmode", reinterpret_cast<const char*>(u8"Бессмертие") };
 const char* LOCALE_VITALS[2]        = { "VITALS", reinterpret_cast<const char*>(u8"СТАТЫ") };
@@ -31,7 +15,7 @@ const char* LOCALE_INFENERGY[2]     = { "Infinite stamina", reinterpret_cast<con
 const char* LOCALE_INFBATTERY[2]    = { "Infinite battery", reinterpret_cast<const char*>(u8"Бесконечный заряд батареи") };
 const char* LOCALE_FULLNESS[2]      = { "Max fullness", reinterpret_cast<const char*>(u8"Полная сытость") };
 const char* LOCALE_THIRST[2]        = { "No thirst", reinterpret_cast<const char*>(u8"Нет жажды") };
-const char* LOCALE_BUILDING[2]      = { "Free crafting", reinterpret_cast<const char*>(u8"Крафт без ресурсов") };
+const char* LOCALE_BUILDING[2]      = { "Free building", reinterpret_cast<const char*>(u8"Стройка без ресурсов") };
 const char* LOCALE_UNLIMITEMS[2]    = { "Unlimited items", reinterpret_cast<const char*>(u8"Бесконечные предметы") };
 const char* LOCALE_JUMPAMPL[2]      = { "Jump amplification", reinterpret_cast<const char*>(u8"Усиление прыжка") };
 const char* LOCALE_FALLDMG[2]       = { "No fall damage", reinterpret_cast<const char*>(u8"Нет урона от падения") };
@@ -62,6 +46,7 @@ const char* LOCALE_INVISIBLE[2]     = { "Enemies cant see you", reinterpret_cast
 const char* LOCALE_INFCONSUME[2]    = { "Infinite consumables", reinterpret_cast<const char*>(u8"Расходные предметы не кончаются") };
 const char* LOCALE_SKIPPLANE[2]     = { "Skip plane crash", reinterpret_cast<const char*>(u8"Пропускать крушение самолета") };
 const char* LOCALE_GENERAL[2]       = { "GENERAL", reinterpret_cast<const char*>(u8"ОБЩЕЕ") };
+const char* LOCALE_GENERAL2[2]      = { "GENERAL##2", reinterpret_cast<const char*>(u8"ОБЩЕЕ##2") };
 
 // Buttons
 const char* LOCALE_GET_ARMOR[2]     = { "Get##Armor", reinterpret_cast<const char*>(u8"Получить##Armor") };
@@ -206,3 +191,4 @@ const char* LOCALE_TIP_CONSUMABLES[2] = { "Infinite molotovs, bombs, arrows, etc
 const char* LOCALE_TIP_ENEMIES[2] = { "Takes some time. DO NOT SPAM", reinterpret_cast<const char*>(u8"Занимает какое-то время. НЕ СПАМЬТЕ!") };
 const char* LOCALE_TIP_PLANE[2] = { "You will spawn at the beach", reinterpret_cast<const char*>(u8"Вы появитесь на пляже") };
 const char* LOCALE_TIP_ESP[2] = { "Shows yacht, pit, plane, caves and distance to them", reinterpret_cast<const char*>(u8"Показывает яхту, яму, самолет и пещеры,\nа также расстояние до них") };
+const char* LOCALE_BOOSTY[2] = {"Only for Boosty members", reinterpret_cast<const char*>(u8"Только для подписчиков Бусти")};

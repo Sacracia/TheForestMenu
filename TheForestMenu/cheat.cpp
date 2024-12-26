@@ -1,9 +1,5 @@
 #include "cheat.h"
 
-#if !defined(PATRON) && !defined(FREE)
-#error Either PATRON or FREE must be specified
-#endif
-
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <shellapi.h>
@@ -44,9 +40,15 @@ struct EnemyHealth;
 #define HAXSDK_FIELD_OFFSET(a, n, c, f)         static int c ## __ ## f
 #include "cheat_data.h"
 
+static ImVec2 g_modMenuSize = ImVec2(445.f, 600.f);
+
 static ImTextureID g_BoostyTexture = nullptr;
 static ImVec2 g_textureSize;
-static ImVec2 g_modMenuSize = ImVec2(445.f, 600.f);
+
+static ImTextureID g_BoostyWatermarkTexture = nullptr;
+static ImVec2 g_watermarkSize;
+
+static ImVec2 g_spaceHeight = ImVec2(0.f, 10.f);
 
 static int g_curLocale = LOCALE_ENG;
 static ImFont* g_espFont;
@@ -135,12 +137,10 @@ static void Hooked_EnemyHealth__Hit(EnemyHealth* __this, int32_t damage);
 static int32_t Hooked_animalHealth__Hit(animalHealth* __this, int32_t damage);
 static void Hooked_WeatherSystem__Update(WeatherSystem* __this);
 static void Hooked_PlayerInventory__Update(PlayerInventory* __this);
-static void Hooked_TreeHealth__DamageTree(TreeHealth* __this);
+static void Hooked_TreeHealth__Hit(TreeHealth* __this);
 static bool Hooked_PlayerInventory__RemoveItem(PlayerInventory* __this, int32_t itemId, int32_t amount, bool allowAmountOverflow, bool shouldEquipPrevious);
 static void Hooked_PlaneCrashController__Start(void* __this);
-#ifdef FREE
 static void Hooked_SteamSocket__Recv(void* __this, bool isServer);
-#endif
 
 struct Scene {
     static void* ActiveMB() { return *Scene__ActiveMB; }
@@ -280,7 +280,7 @@ public:
 };
 
 struct BoltNetwork {
-    static bool isRunning() { return reinterpret_cast<bool(*)()>(BoltNetwork__get_isRunning.Ptr())(); }
+    static bool isClient() { return reinterpret_cast<bool(*)()>(BoltNetwork__get_isClient.Ptr())(); }
 };
 
 static void EnableCheat() {
@@ -320,7 +320,9 @@ void ModMenu::Initialize() {
     DetourAttach(&(PVOID&)(LocalPlayer__OnDestroy.Ptr()), Hooked_LocalPlayer__OnDestroy);
     DetourAttach(&(PVOID&)(WeatherSystem__Update.Ptr()), Hooked_WeatherSystem__Update);
     DetourAttach(&(PVOID&)(PlayerInventory__Update.Ptr()), Hooked_PlayerInventory__Update);
-    DetourAttach(&(PVOID&)(TreeHealth__DamageTree.Ptr()), Hooked_TreeHealth__DamageTree);
+#ifndef FREE
+    DetourAttach(&(PVOID&)(TreeHealth__Hit.Ptr()), Hooked_TreeHealth__Hit);
+#endif
     DetourAttach(&(PVOID&)(PlayerInventory__RemoveItem.Ptr()), Hooked_PlayerInventory__RemoveItem);
     DetourAttach(&(PVOID&)(PlaneCrashController__Start.Ptr()), Hooked_PlaneCrashController__Start);
 #ifdef FREE
@@ -335,6 +337,8 @@ void ModMenu::Initialize() {
 void HaxSdk::RenderImages() {
     g_textureSize = ImVec2(301.f, 77.f);
     g_BoostyTexture = HaxSdk::LoadTextureFromData(g_boostyImage, (int)g_textureSize.x, (int)g_textureSize.y);
+    g_watermarkSize = ImVec2(15.f, 15.f);
+    g_BoostyWatermarkTexture = HaxSdk::LoadTextureFromData(g_boostyWaterMark, (int)g_watermarkSize.x, (int)g_watermarkSize.y);
 }
 
 static void AddText(const char* text, const ImVec2& pos, ImU32 col) {
@@ -395,7 +399,7 @@ static const char* ParseCannibalName(System::String* string) {
     if (wcsncmp(wname, L"mutant_creepy_fat", 17) == 0)
         return LOCALE_COWMAN[g_curLocale];
     if (wcsncmp(wname, L"girl", 4) == 0)
-        return LOCALE_COWMAN[g_curLocale];
+        return LOCALE_GIRL[g_curLocale];
     return string->UTF8();
 }
 
@@ -407,13 +411,15 @@ void HaxSdk::RenderBackground() {
         // Animals ESP
         if (g_animalEsp) {
             SpawnPoolsDict* pSpawnPoolsDict = *PoolManager__Pools;
-            System::String* poolName = BoltNetwork::isRunning() ? System::String::New("creatures_net") : System::String::New("creatures");
+            System::String* poolName = BoltNetwork::isClient() ? System::String::New("creatures_net") : System::String::New("creatures");
             if (pSpawnPoolsDict->ContainsKey(poolName)) {
                 System::List<Unity::Transform*>* pCreatures = pSpawnPoolsDict->get_Item(poolName)->_spawned();
                 Unity::Transform** pCreaturesData = pCreatures->Data();
                 for (int32_t i = 0; i < pCreatures->Lenght(); ++i) {
+                    if (!pCreaturesData[i])
+                        continue;
                     Unity::GameObject* pCreature = pCreaturesData[i]->GetGameObject();
-                    if (pCreature) {
+                    if (pCreature && pCreature->GetActiveSelf()) {
                         Unity::Vector3 creaturePos = pCreature->GetTransform()->GetPosition();
                         Unity::Vector3 screenPos = pCamera->WorldToScreenPoint(creaturePos);
                         if (screenPos.z > 0) {
@@ -428,7 +434,7 @@ void HaxSdk::RenderBackground() {
 
         // Cannibals ESP
         if (g_cannibalEsp) {
-            System::List<Unity::GameObject*>* pActiveCannibals = BoltNetwork::isRunning() ? 
+            System::List<Unity::GameObject*>* pActiveCannibals = BoltNetwork::isClient() ?
                 Scene::MutantControler()->activeNetCannibals() : Scene::MutantControler()->activeCannibals();
             Unity::GameObject** pCannibalsData = pActiveCannibals->Data();
             for (int32_t i = 0; i < pActiveCannibals->Lenght(); ++i) {
@@ -440,7 +446,7 @@ void HaxSdk::RenderBackground() {
             }
         }
 
-#ifdef PATRON
+#ifndef FREE
         // Locations ESP
         if (g_locationsEsp) {
             sceneTracker* pSceneTracker = Scene::SceneTracker();
@@ -527,7 +533,7 @@ static void HelpMarker(const char* desc)
 
 static void WarningMarker(const char* desc) {
     ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_TextDisabled, IM_COL32(0xFF, 0xFF, 0x00, 0xFF));
+    ImGui::PushStyleColor(ImGuiCol_TextDisabled, IM_COL32(0xC9, 0xC9, 0xC9, 0xFF));
     ImGui::TextDisabled("(!)");
     ImGui::PopStyleColor();
     if (ImGui::BeginItemTooltip()) {
@@ -535,6 +541,15 @@ static void WarningMarker(const char* desc) {
         ImGui::TextUnformatted(desc);
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
+    }
+}
+
+static void BoostyWatermark() {
+    if (g_BoostyWatermarkTexture != nullptr) {
+        ImGui::SameLine();
+        ImGui::Image(g_BoostyWatermarkTexture, g_watermarkSize);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(LOCALE_BOOSTY[g_curLocale]);
     }
 }
 
@@ -560,13 +575,24 @@ static void RenderPlayerTab() {
         if (ImGui::Button(LOCALE_GET_ARMOR[g_curLocale]))
             g_forceArmor = true;
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
-#ifdef PATRON
+#ifdef FREE
+        ImGui::PushItemFlag(1 << 10, true);
+        ImGui::Checkbox(LOCALE_TREECUT[g_curLocale], &g_fastTreeCut);
+        ImGui::PopItemFlag();
+        BoostyWatermark();
+#else
         ImGui::Checkbox(LOCALE_TREECUT[g_curLocale], &g_fastTreeCut);
         HelpMarker(LOCALE_TIP_TREECUT[g_curLocale]);
 #endif
         if (ImGui::Button(LOCALE_RANDOUTFIT[g_curLocale]))
             g_forceRandomOutfit = true;
-#ifdef PATRON
+
+#ifdef FREE
+        ImGui::PushItemFlag(1 << 10, true);
+        ImGui::Button(LOCALE_ACHIEVS[g_curLocale]);
+        ImGui::PopItemFlag();
+        BoostyWatermark();
+#else
         if (ImGui::Button(LOCALE_ACHIEVS[g_curLocale]))
             g_forceAchievements = true;
 #endif
@@ -583,10 +609,16 @@ static void RenderItemsTab() {
         ImGui::Checkbox(LOCALE_HAIRSPRAY[g_curLocale], Cheats__UnlimitedHairspray);
         ImGui::Checkbox(LOCALE_INFCONSUME[g_curLocale], &g_infConsumables);
         HelpMarker(LOCALE_TIP_CONSUMABLES[g_curLocale]);
-#ifdef PATRON
+#ifdef FREE
+        ImGui::PushItemFlag(1 << 10, true);
+        ImGui::Button(LOCALE_STORYITEMS[g_curLocale]);
+        ImGui::PopItemFlag();
+        BoostyWatermark();
+#else
         if (ImGui::Button(LOCALE_STORYITEMS[g_curLocale]))
             g_forceStoryItems = true;
 #endif
+
         if (ImGui::Button(LOCALE_ALLITEMS[g_curLocale]))
             g_forceAllItems = true;
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -605,7 +637,14 @@ static void RenderItemsTab() {
 
 static void RenderWorldTab() {
     if (ImGui::BeginTabItem(LOCALE_WORLD[g_curLocale])) {
-#ifdef PATRON
+        ImGui::SeparatorText(LOCALE_GENERAL2[g_curLocale]);
+#ifdef FREE
+        ImGui::PushItemFlag(1 << 10, true);
+        ImGui::Checkbox(LOCALE_LOCATIONSESP[g_curLocale], &g_locationsEsp);
+        ImGui::PopItemFlag();
+        HelpMarker(LOCALE_TIP_ESP[g_curLocale]);
+        BoostyWatermark();
+#else
         ImGui::Checkbox(LOCALE_LOCATIONSESP[g_curLocale], &g_locationsEsp);
         HelpMarker(LOCALE_TIP_ESP[g_curLocale]);
 #endif
@@ -647,26 +686,23 @@ static void RenderSettingsTab() {
 
 static void RenderMainMenuTab() {
     if (ImGui::BeginTabItem(LOCALE_MENU[g_curLocale])) {
+        ImGui::Checkbox(LOCALE_SKIPPLANE[g_curLocale], &g_skipPlaneCrash);
+        WarningMarker(LOCALE_TIP_PLANE[g_curLocale]);
+        ImGui::Dummy(ImVec2(0.f, 10.f));
+        ImGui::Text(LOCALE_PREMENU[g_curLocale]);
 #ifdef FREE
         ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0xFF, 0x00, 0x00, 0xFF));
         ImGui::Text(LOCALE_NONETWORK[g_curLocale]);
         ImGui::PopStyleColor();
 #endif
-        ImGui::Checkbox(LOCALE_SKIPPLANE[g_curLocale], &g_skipPlaneCrash);
-        WarningMarker(LOCALE_TIP_PLANE[g_curLocale]);
-        ImGui::Text(LOCALE_PREMENU[g_curLocale]);
         ImGui::EndTabItem();
-#ifdef FREE
-        ImGui::Dummy(ImVec2(0, 10.F));
-        ImGui::Text(LOCALE_BOOSTY[g_curLocale]);
-#endif
     }
 }
 
 void HaxSdk::RenderMenu() {
     ImGui::SetNextWindowSize(g_modMenuSize, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowBgAlpha(1);
-    ImGui::Begin("The Forest Mod Menu [by Sacracia]", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+    ImGui::Begin("The Forest Mod Menu v1.0.0 [by Sacracia]", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
     ImGui::BeginTabBar("TheForest#TopBar", ImGuiTabBarFlags_NoTabListScrollingButtons);
     if (g_inGame) {
         RenderPlayerTab();
@@ -678,11 +714,15 @@ void HaxSdk::RenderMenu() {
     }
     RenderSettingsTab();
     ImGui::EndTabBar();
+#ifdef FREE
     if (g_BoostyTexture) {
-        ImGui::SetCursorPos(ImVec2(71.f, 504.f));
+        ImGui::SetCursorPos(ImVec2((g_modMenuSize.x - g_textureSize.x) / 2.f, 504.f * g_sizeScale));
         if (ImGui::ImageButton((ImTextureID)g_BoostyTexture, g_textureSize, ImVec2(0,0), ImVec2(1, 1), 0))
-            ShellExecute(0, 0, "http://www.google.com", 0, 0, SW_SHOW);
+            ShellExecute(0, 0, "https://boosty.to/sacraciamods", 0, 0, SW_SHOW);
+        if (ImGui::IsItemHovered())
+            ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
+#endif
     ImGui::End();
 }
 
@@ -778,21 +818,23 @@ static void Hooked_WeatherSystem__Update(WeatherSystem* __this) {
         reinterpret_cast<void(*)(WeatherSystem*,int32_t)>(WeatherSystem__TurnOn.Ptr())(__this, g_forceRainType);
         g_forceRain = false;
     }
+#ifndef FREE
     if (g_forceAchievements) {
         System::Array<AchievementData*>* achievements = *Achievements__Data;
         for (int i = 0; i < achievements->Length(); ++i)
             AccountInfo::UnlockAchievement(achievements->Data()[i]);
         g_forceAchievements = false;
     }
+#endif
     reinterpret_cast<void(*)(WeatherSystem*)>(WeatherSystem__Update.Ptr())(__this);
 }
 
-static void Hooked_TreeHealth__DamageTree(TreeHealth* __this) {
+static void Hooked_TreeHealth__Hit(TreeHealth* __this) {
     if (g_fastTreeCut) {
         reinterpret_cast<void(*)(TreeHealth*, float)>(TreeHealth__Explosion.Ptr())(__this, 0);
         return;
     }
-    reinterpret_cast<void(*)(TreeHealth*)>(TreeHealth__DamageTree.Ptr())(__this);
+    reinterpret_cast<void(*)(TreeHealth*)>(TreeHealth__Hit.Ptr())(__this);
 }
 
 static void Hooked_PlayerInventory__Update(PlayerInventory* __this) {
@@ -800,10 +842,12 @@ static void Hooked_PlayerInventory__Update(PlayerInventory* __this) {
         g_debugConsole->_addAllItems();
         g_forceAllItems = false;
     }
+#ifndef FREE
     if (g_forceStoryItems) {
         g_debugConsole->_addAllStoryItems();
         g_forceStoryItems = false;
     }
+#endif
     if (g_forceItem) {
         __this->AddItem(g_forceItemId, 1, false, false);
         g_forceItem = false;
@@ -816,7 +860,7 @@ static void Hooked_PlayerInventory__Update(PlayerInventory* __this) {
         g_debugConsole->_spawnenemy(System::String::New(enemiesInternalNames[g_curEnemy]));
         g_forceEnemySpawn = false;
     }
-    if (g_forceAnimalSpawn && !BoltNetwork::isRunning()) {
+    if (g_forceAnimalSpawn && !BoltNetwork::isClient()) {
         System::String* prefabName = System::String::New(animalsInternalNames[g_curAnimal]);
         SpawnPoolsDict* pSwapPoolsDict = *PoolManager__Pools;
         SpawnPool* pSpawnPool = pSwapPoolsDict->get_Item(System::String::New("creatures"));
@@ -858,6 +902,10 @@ void HaxSdk::ApplyStyle() {
 
     g_modMenuSize.x *= g_sizeScale;
     g_modMenuSize.y *= g_sizeScale;
+    g_textureSize.x *= g_sizeScale;
+    g_textureSize.y *= g_sizeScale;
+    g_watermarkSize.x *= g_sizeScale;
+    g_watermarkSize.y *= g_sizeScale;
 
     ImGuiStyle* styles = &ImGui::GetStyle();
 
